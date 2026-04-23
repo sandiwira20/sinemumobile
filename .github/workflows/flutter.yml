@@ -1,10 +1,9 @@
-name: Flutter CI
+name: Flutter CI/CD
 
 on:
   push:
     branches: [main]
-    tags:
-      - "v*"
+  pull_request: # Tambahan dari dosen untuk trigger saat Pull Request
 
 permissions:
   contents: write
@@ -12,6 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: 📦 Checkout Repository
         uses: actions/checkout@v4
@@ -19,14 +19,21 @@ jobs:
       - name: ☁️ Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.35.2"
+          flutter-version: "3.35.2" # Tetap pakai versi laptop Abang biar aman
+
+      # --- INI DIA INTI PRAKTIKUM 5: CACHING DEPENDENCIES ---
+      - name: 💾 Cache Flutter Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
 
       - name: 📦 Install Dependencies
         run: flutter pub get
 
       - name: 🧪 Run Tests
         run: flutter test
-        continue-on-error: true
+        continue-on-error: true # Tetap kebal error test
 
       - name: 🏗️ Build APK
         run: flutter build apk --release
@@ -37,6 +44,7 @@ jobs:
           name: app-release
           path: build/app/outputs/flutter-apk/app-release.apk
 
+      # --- (Opsional: Create Release tetap saya biarkan agar rapi) ---
       - name: 🚀 Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
@@ -52,11 +60,11 @@ jobs:
           curl -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument \
           -F chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
           -F document=@build/app/outputs/flutter-apk/app-release.apk \
-          -F caption="✅ APK SiNemu berhasil di-build, Bang Tampan!"
+          -F caption="✅ Praktikum 5 (Caching) Selesai! APK SiNemu berhasil di-build, Bang Tampan!"
 
-      - name: ❌ Notify Telegram (Failed)
+      - name: ❌ Notify Failed
         if: failure()
         run: |
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-          -d text="❌ Waduh, Build APK SiNemu gagal Bang! Cek GitHub Actions ya."
+          -d text="❌ Build gagal Bang! Cek GitHub Actions."
