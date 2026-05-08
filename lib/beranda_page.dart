@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'pencarian_page.dart';
 
 class BerandaPage extends StatelessWidget {
   const BerandaPage({super.key});
@@ -22,22 +23,33 @@ class BerandaPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 15),
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      height: 45,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.search, color: Colors.grey),
-                          SizedBox(width: 10),
-                          Text(
-                            'Cari barang...',
-                            style: TextStyle(color: Colors.grey),
+                    // --- INI YANG DIUBAH: Ditambah GestureDetector ---
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PencarianPage(),
                           ),
-                        ],
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
+                        height: 45,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.search, color: Colors.grey),
+                            SizedBox(width: 10),
+                            Text(
+                              'Cari barang...',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -106,7 +118,14 @@ class BerandaPage extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         OutlinedButton.icon(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PencarianPage(),
+                              ),
+                            );
+                          },
                           icon: const Icon(
                             Icons.search,
                             color: Colors.black87,

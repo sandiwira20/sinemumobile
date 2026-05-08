@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'edit_profil_page.dart';
 
 class AkunPage extends StatelessWidget {
   const AkunPage({super.key});
@@ -12,19 +13,30 @@ class AkunPage extends StatelessWidget {
           child: Column(
             children: [
               // --- HEADER PROFIL ---
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.arrow_back, color: Colors.grey),
-                  Text(
+                  const Icon(Icons.arrow_back, color: Colors.grey),
+                  const Text(
                     'Profil Akun',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  Text(
-                    'EDIT',
-                    style: TextStyle(
-                      color: Color(0xFF4A90E2),
-                      fontWeight: FontWeight.bold,
+                  // INI YANG DIUBAH: Teks EDIT dibungkus TextButton
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EditProfilPage(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'EDIT',
+                      style: TextStyle(
+                        color: Color(0xFF4A90E2),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
