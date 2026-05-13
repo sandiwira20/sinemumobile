@@ -1,8 +1,62 @@
+import 'dart:convert'; // Untuk menerjemahkan JSON
+import 'package:http/http.dart' as http; // Kurir pengantar pesan
 import 'package:flutter/material.dart';
 import 'pencarian_page.dart';
+import 'akun_page.dart';
+import 'lapor_page.dart';
+import 'daftar_barang_page.dart';
+import 'detail_barang_page.dart';
 
-class BerandaPage extends StatelessWidget {
+// UBAH JADI STATEFUL WIDGET BIAR BISA NAMPILIN DATA DINAMIS
+class BerandaPage extends StatefulWidget {
   const BerandaPage({super.key});
+
+  @override
+  State<BerandaPage> createState() => _BerandaPageState();
+}
+
+class _BerandaPageState extends State<BerandaPage> {
+  bool isLoading = true; // Status loading
+  String pesanServer = "Menghubungkan ke Dapur Laravel...";
+  List barangTemuan = [];
+  List barangHilang = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _ambilDataDariLaravel(); // Panggil fungsi saat halaman pertama kali dibuka
+  }
+
+  // --- FUNGSI AJAIB UNTUK MENGAMBIL DATA ---
+  Future<void> _ambilDataDariLaravel() async {
+    try {
+      // 10.0.2.2 adalah kode rahasia emulator untuk mengakses localhost laptop
+      final url = Uri.parse('http://10.0.2.2:8000/api/tes-barang');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body); // Terjemahkan JSON
+        final semuaBarang = data['data_barang'] as List;
+
+        setState(() {
+          pesanServer = data['pesan']; // Ambil pesan sapaan dari Laravel
+          // Pisahkan mana yang temuan, mana yang hilang
+          barangTemuan = semuaBarang
+              .where((b) => b['status'] == 'TEMUAN')
+              .toList();
+          barangHilang = semuaBarang
+              .where((b) => b['status'] == 'HILANG')
+              .toList();
+          isLoading = false; // Matikan loading
+        });
+      }
+    } catch (e) {
+      setState(() {
+        pesanServer = "Gagal nyambung Bang! Error: $e";
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +67,7 @@ class BerandaPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- BAGIAN 1: SEARCH BAR & PROFILE ---
+              // --- BAGIAN 1: SEARCH BAR & PROFILE (SAMA SEPERTI SEBELUMNYA) ---
               Row(
                 children: [
                   Image.asset(
@@ -23,16 +77,13 @@ class BerandaPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 15),
                   Expanded(
-                    // --- INI YANG DIUBAH: Ditambah GestureDetector ---
                     child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PencarianPage(),
-                          ),
-                        );
-                      },
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PencarianPage(),
+                        ),
+                      ),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 15),
                         height: 45,
@@ -54,17 +105,24 @@ class BerandaPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 15),
-                  const CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.grey,
-                    child: Icon(Icons.person, color: Colors.white),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AkunPage()),
+                    ),
+                    child: const CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.grey,
+                      child: Icon(Icons.person, color: Colors.white),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 30),
 
-              // --- BAGIAN 2: KOTAK HALO ANDI ---
+              // --- BAGIAN 2: KOTAK HALO ---
               Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -90,15 +148,25 @@ class BerandaPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 5),
-                    const Text(
-                      'Apa ada barang yang hilang?',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    // Teks ini sekarang ngambil dari Laravel!
+                    Text(
+                      isLoading ? "Lagi mesen data..." : pesanServer,
+                      style: TextStyle(
+                        color: isLoading ? Colors.orange : Colors.green,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
                         ElevatedButton.icon(
-                          onPressed: () {},
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LaporPage(),
+                            ),
+                          ),
                           icon: const Icon(
                             Icons.add_circle_outline,
                             color: Colors.white,
@@ -118,14 +186,12 @@ class BerandaPage extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const PencarianPage(),
-                              ),
-                            );
-                          },
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PencarianPage(),
+                            ),
+                          ),
                           icon: const Icon(
                             Icons.search,
                             color: Colors.black87,
@@ -152,93 +218,126 @@ class BerandaPage extends StatelessWidget {
               ),
               const SizedBox(height: 30),
 
-              // --- BAGIAN 3: BARANG TEMUAN ---
-              _buildSectionHeader(
-                icon: Icons.inventory_2_outlined,
-                iconColor: Colors.green,
-                title: 'Barang Temuan',
-              ),
-              const SizedBox(height: 15),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildItemCard(
-                      badgeText: 'TEMUAN',
-                      badgeColor: const Color(0xFF2ECC71),
-                      imageGradient: const [
-                        Color(0xFFF39C12),
-                        Color(0xFFF1C40F),
-                      ],
-                      category: 'OTOMOTIF',
-                      time: '2 Jam Lalu',
-                      title: 'Kunci Mobil Honda',
-                      location: 'Parkiran Minimarket',
-                      buttonText: 'KLAIM BARANG',
+              // JIKA SEDANG LOADING, TAMPILKAN SPINNER
+              if (isLoading)
+                const Center(child: CircularProgressIndicator())
+              else ...[
+                // --- BAGIAN 3: BARANG TEMUAN ---
+                _buildSectionHeader(
+                  icon: Icons.inventory_2_outlined,
+                  iconColor: Colors.green,
+                  title: 'Barang Temuan',
+                  onTapLihatSemua: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DaftarBarangPage(
+                        kategori: 'Temuan',
+                        warnaTema: Colors.green,
+                      ),
                     ),
-                    const SizedBox(width: 15),
-                    _buildItemCard(
-                      badgeText: 'TEMUAN',
-                      badgeColor: const Color(0xFF2ECC71),
-                      imageGradient: const [
-                        Color(0xFF7F8C8D),
-                        Color(0xFFBDC3C7),
-                      ],
-                      category: 'GADGET',
-                      time: '5 Jam Lalu',
-                      title: 'iPhone 13 Hitam',
-                      location: 'Halte Bis Sentral',
-                      buttonText: 'KLAIM BARANG',
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 30),
+                const SizedBox(height: 15),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    // MAPPING DATA DARI LARAVEL
+                    children: barangTemuan.map((barang) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 15),
+                        child: _buildItemCard(
+                          badgeText: barang['status'],
+                          badgeColor: const Color(0xFF2ECC71),
+                          imageGradient: const [
+                            Color(0xFFF39C12),
+                            Color(0xFFF1C40F),
+                          ],
+                          category: barang['kategori'],
+                          time: 'Baru saja',
+                          title: barang['nama'],
+                          location: 'Dari Database',
+                          buttonText: 'KLAIM BARANG',
+                          onTapButton: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetailBarangPage(
+                                title: barang['nama'],
+                                category: barang['kategori'],
+                                time: 'Baru Saja',
+                                location: 'Dari Database',
+                                status: barang['status'],
+                                imageGradient: const [
+                                  Color(0xFFF39C12),
+                                  Color(0xFFF1C40F),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 30),
 
-              // --- BAGIAN 4: BARANG HILANG ---
-              _buildSectionHeader(
-                icon: Icons.search_off,
-                iconColor: Colors.redAccent,
-                title: 'Barang Hilang',
-              ),
-              const SizedBox(height: 15),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildItemCard(
-                      badgeText: 'HILANG',
-                      badgeColor: const Color(0xFFE74C3C),
-                      imageGradient: const [
-                        Color(0xFF1ABC9C),
-                        Color(0xFF16A085),
-                      ],
-                      category: 'AKSESORIS',
-                      time: '1 Hari Lalu',
-                      title: 'Dompet Kulit Coklat',
-                      location: 'Area Kantin Kampus',
-                      buttonText: 'BANTU CARI',
+                // --- BAGIAN 4: BARANG HILANG ---
+                _buildSectionHeader(
+                  icon: Icons.search_off,
+                  iconColor: Colors.redAccent,
+                  title: 'Barang Hilang',
+                  onTapLihatSemua: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DaftarBarangPage(
+                        kategori: 'Hilang',
+                        warnaTema: Colors.redAccent,
+                      ),
                     ),
-                    const SizedBox(width: 15),
-                    _buildItemCard(
-                      badgeText: 'HILANG',
-                      badgeColor: const Color(0xFFE74C3C),
-                      imageGradient: const [
-                        Color(0xFF34495E),
-                        Color(0xFF2C3E50),
-                      ],
-                      category: 'HEWAN',
-                      time: '2 Hari Lalu',
-                      title: 'Anjing Golden',
-                      location: 'Taman Kota',
-                      buttonText: 'BANTU CARI',
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(
-                height: 100,
-              ), // Spasi kosong di bawah biar gak ketutupan bottom nav
+                const SizedBox(height: 15),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    // MAPPING DATA DARI LARAVEL
+                    children: barangHilang.map((barang) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 15),
+                        child: _buildItemCard(
+                          badgeText: barang['status'],
+                          badgeColor: const Color(0xFFE74C3C),
+                          imageGradient: const [
+                            Color(0xFF1ABC9C),
+                            Color(0xFF16A085),
+                          ],
+                          category: barang['kategori'],
+                          time: 'Kemarin',
+                          title: barang['nama'],
+                          location: 'Dari Database',
+                          buttonText: 'BANTU CARI',
+                          onTapButton: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetailBarangPage(
+                                title: barang['nama'],
+                                category: barang['kategori'],
+                                time: 'Kemarin',
+                                location: 'Dari Database',
+                                status: barang['status'],
+                                imageGradient: const [
+                                  Color(0xFF1ABC9C),
+                                  Color(0xFF16A085),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -246,11 +345,12 @@ class BerandaPage extends StatelessWidget {
     );
   }
 
-  // WIDGET BANTUAN: Buat bikin Judul Bagian (Contoh: Barang Temuan & Lihat Semua)
+  // WIDGET BANTUAN SAMA SEPERTI SEBELUMNYA
   Widget _buildSectionHeader({
     required IconData icon,
     required Color iconColor,
     required String title,
+    required VoidCallback onTapLihatSemua,
   }) {
     return Row(
       children: [
@@ -268,18 +368,20 @@ class BerandaPage extends StatelessWidget {
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const Spacer(),
-        const Text(
-          'Lihat Semua',
-          style: TextStyle(
-            color: Color(0xFF4A90E2),
-            fontWeight: FontWeight.bold,
+        GestureDetector(
+          onTap: onTapLihatSemua,
+          child: const Text(
+            'Lihat Semua',
+            style: TextStyle(
+              color: Color(0xFF4A90E2),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
     );
   }
 
-  // WIDGET BANTUAN: Buat bikin Kartu Barangnya
   Widget _buildItemCard({
     required String badgeText,
     required Color badgeColor,
@@ -289,6 +391,7 @@ class BerandaPage extends StatelessWidget {
     required String title,
     required String location,
     required String buttonText,
+    required VoidCallback onTapButton,
   }) {
     return Container(
       width: 240,
@@ -306,7 +409,6 @@ class BerandaPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Gambar & Badge
           Stack(
             children: [
               Container(
@@ -346,7 +448,6 @@ class BerandaPage extends StatelessWidget {
               ),
             ],
           ),
-          // Info Detail
           Padding(
             padding: const EdgeInsets.all(15.0),
             child: Column(
@@ -405,7 +506,7 @@ class BerandaPage extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: onTapButton,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1A202C),
                       shape: RoundedRectangleBorder(

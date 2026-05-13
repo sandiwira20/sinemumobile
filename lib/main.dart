@@ -3,8 +3,13 @@ import 'beranda_page.dart';
 import 'akun_page.dart';
 import 'notifikasi_page.dart';
 import 'maps_page.dart';
+import 'login_page.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
   runApp(const SiNemuApp());
 }
 
@@ -22,7 +27,7 @@ class SiNemuApp extends StatelessWidget {
         fontFamily:
             'Inter', // Pastikan Abang nanti tambahin font di pubspec.yaml
       ),
-      home: const MainScreen(),
+      home: const LoginPage(),
     );
   }
 }
