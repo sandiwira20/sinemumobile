@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // INI KUNCI UTAMANYA BANG!
-import 'main.dart'; // Pastikan ini mengarah ke file yang menampung BerandaPage/MainScreen
+import 'package:google_sign_in/google_sign_in.dart';
+import 'main.dart';
 import 'register_page.dart';
+import 'user_data.dart'; // PANGGIL BRANKASNYA
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,49 +13,38 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _isGoogleLoading = false;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
 
-  // Inisialisasi Mesin Google Sign In
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ["email"]);
-
-  // Fungsi untuk memanggil Pop-up Akun Google
   Future<void> _loginDenganGoogle() async {
-    setState(() {
-      _isGoogleLoading = true;
-    });
+    setState(() => _isGoogleLoading = true);
 
     try {
-      // Tunggu user milih akun Gmail-nya
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser != null) {
-        // --- SUKSES! ---
-        // Nanti emailnya bisa diambil pakai: googleUser.email
-        // Namanya bisa diambil pakai: googleUser.displayName
+        // --- SIMPAN DATA GOOGLE KE BRANKAS GLOBAL ---
+        UserData.nama = googleUser.displayName ?? 'Sandi Wira';
+        UserData.email = googleUser.email;
+        UserData.fotoUrl = googleUser.photoUrl ?? '';
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Selamat datang, ${googleUser.displayName}!'),
+              content: Text('Selamat datang, ${UserData.nama}!'),
               backgroundColor: Colors.green,
             ),
           );
 
-          // Langsung lempar ke Beranda
+          // Lempar ke MainScreen (Beranda)
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (context) => const MainScreen(),
-            ), // Sesuaikan dengan class MainScreen/BerandaPage Abang
+            MaterialPageRoute(builder: (context) => const MainScreen()),
           );
         }
       } else {
-        // User menekan tombol 'Batal' di luar pop-up
-        setState(() {
-          _isGoogleLoading = false;
-        });
+        setState(() => _isGoogleLoading = false);
       }
     } catch (error) {
-      // Jika terjadi error (misal jaringan atau config SHA-1)
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -63,9 +53,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       }
-      setState(() {
-        _isGoogleLoading = false;
-      });
+      setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -102,7 +90,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 30),
 
-                // TOMBOL MASUK BIASA
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -135,7 +122,6 @@ class _LoginPageState extends State<LoginPage> {
                 const Text('Atau', style: TextStyle(color: Colors.grey)),
                 const SizedBox(height: 25),
 
-                // TOMBOL GOOGLE
                 SizedBox(
                   width: double.infinity,
                   height: 55,
@@ -175,14 +161,12 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     const Text('Belum punya akun?'),
                     TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RegisterPage(),
-                          ),
-                        );
-                      },
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RegisterPage(),
+                        ),
+                      ),
                       child: const Text(
                         'Daftar di sini',
                         style: TextStyle(

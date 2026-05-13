@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'edit_profil_page.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'login_page.dart';
+import 'user_data.dart'; // PANGGIL BRANKASNYA
 
 class AkunPage extends StatelessWidget {
   const AkunPage({super.key});
@@ -9,128 +10,87 @@ class AkunPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              children: [
-                // --- HEADER PROFIL ---
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        }
-                      },
-                      child: const Icon(Icons.arrow_back, color: Colors.grey),
-                    ),
-                    const Text(
-                      'Profil Akun',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    // INI YANG DIUBAH: Teks EDIT dibungkus TextButton
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const EditProfilPage(),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'EDIT',
-                        style: TextStyle(
-                          color: Color(0xFF4A90E2),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Profil Akun',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {},
+            child: const Text(
+              'EDIT',
+              style: TextStyle(
+                color: Color(0xFF4A90E2),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              // --- FOTO PROFIL DARI GOOGLE ---
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.grey.shade200,
+                backgroundImage: UserData.fotoUrl.isNotEmpty
+                    ? NetworkImage(UserData.fotoUrl)
+                    : null,
+                child: UserData.fotoUrl.isEmpty
+                    ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                    : null,
+              ),
+              const SizedBox(height: 15),
+              // --- NAMA DARI GOOGLE ---
+              Text(
+                UserData.nama,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 30),
+              ),
+              const SizedBox(height: 5),
+              const Text(
+                'Mahasiswa Polindra',
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 40),
 
-                // --- FOTO PROFIL & NAMA ---
-                Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(5), // Border putih luar
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const CircleAvatar(
-                        radius: 45,
-                        backgroundColor: Color(0xFFF5F7FA),
-                        child: Icon(
-                          Icons.person_outline,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF4A90E2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 14,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 15),
-                const Text(
-                  'Budi Setiawan',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 5),
-                const Text(
-                  'Anggota sejak Jan 2024',
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-                const SizedBox(height: 30),
+              // --- DATA EMAIL DARI GOOGLE ---
+              _buildListTile(
+                Icons.badge_outlined,
+                'NAMA LENGKAP',
+                UserData.nama,
+              ),
+              const Divider(height: 1),
+              _buildListTile(
+                Icons.phone_outlined,
+                'NOMOR TELEPON',
+                '+62 812 XXXX XXXX',
+              ),
+              const Divider(height: 1),
+              _buildListTile(Icons.email_outlined, 'EMAIL', UserData.email),
+              const Divider(height: 1),
+              _buildListTile(
+                Icons.location_on_outlined,
+                'ALAMAT',
+                'Indramayu, Jawa Barat',
+              ),
+              const SizedBox(height: 40),
 
-                // --- DAFTAR INFO KARTU ---
-                _buildInfoCard(
-                  Icons.badge_outlined,
-                  'NAMA LENGKAP',
-                  'Budi Setiawan',
-                ),
-                const SizedBox(height: 15),
-                _buildInfoCard(
-                  Icons.phone_outlined,
-                  'NOMOR TELEPON',
-                  '+62 812 3456 7890',
-                ),
-                const SizedBox(height: 15),
-                _buildInfoCard(
-                  Icons.email_outlined,
-                  'EMAIL',
-                  'budi.setiawan@email.com',
-                ),
-                const SizedBox(height: 15),
-                _buildInfoCard(
-                  Icons.location_on_outlined,
-                  'ALAMAT',
-                  'Jl. Mawar No. 123, indramayu, Jawa Barat',
-                ),
-                const SizedBox(height: 30),
-
-                // --- TOMBOL KELUAR AKUN ---
-                GestureDetector(
-                  onTap: () {
+              // --- TOMBOL KELUAR ---
+              TextButton.icon(
+                onPressed: () async {
+                  await GoogleSignIn().signOut(); // Logout dari Google
+                  if (context.mounted) {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
@@ -138,86 +98,45 @@ class AkunPage extends StatelessWidget {
                       ),
                       (Route<dynamic> route) => false,
                     );
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.logout, color: Colors.redAccent),
-                        SizedBox(width: 10),
-                        Text(
-                          'Keluar Akun',
-                          style: TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+                  }
+                },
+                icon: const Icon(Icons.logout, color: Colors.red),
+                label: const Text(
+                  'Keluar Akun',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(
-                  height: 50,
-                ), // Spasi bawah biar nggak nabrak menu
-              ],
-            ),
+              ),
+              const SizedBox(height: 50),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // WIDGET BANTUAN: Buat cetak kartu info berulang-ulang
-  Widget _buildInfoCard(IconData icon, String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
+  Widget _buildListTile(IconData icon, String title, String subtitle) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+      leading: Icon(icon, color: const Color(0xFF4A90E2), size: 30),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 10,
+          color: Colors.grey,
+          fontWeight: FontWeight.bold,
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF4A90E2), size: 28),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(
+          fontSize: 16,
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
