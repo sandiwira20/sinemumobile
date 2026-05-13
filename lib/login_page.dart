@@ -14,7 +14,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isGoogleLoading = false;
 
   // Inisialisasi Mesin Google Sign In
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ["email"]);
 
   // Fungsi untuk memanggil Pop-up Akun Google
   Future<void> _loginDenganGoogle() async {
@@ -148,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Image.network(
-                            'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
+                            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png',
                             height: 24,
                           ),
                     label: Text(
