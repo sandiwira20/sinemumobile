@@ -31,7 +31,7 @@ class RegisterPage extends StatelessWidget {
 
               _buildInputForm('Nama Lengkap', Icons.person_outline),
               const SizedBox(height: 20),
-              _buildInputForm('Email Mahasiswa', Icons.email_outlined),
+              _buildInputForm('Email', Icons.email_outlined),
               const SizedBox(height: 20),
               _buildInputForm('Password', Icons.lock_outline, isPassword: true),
               const SizedBox(height: 40),

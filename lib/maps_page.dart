@@ -8,7 +8,7 @@ class MapsPage extends StatelessWidget {
     return SafeArea(
       child: Stack(
         children: [
-          // --- 1. BACKGROUND PETA (Bohongan dulu ya Bang) ---
+          // --- 1. BACKGROUND PETA ---
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -23,7 +23,7 @@ class MapsPage extends StatelessWidget {
             ),
           ),
 
-          // --- 2. PIN LOKASI BOHONGAN ---
+          // --- 2. PIN LOKASI ---
           const Positioned(
             top: 200,
             left: 100,
@@ -43,11 +43,11 @@ class MapsPage extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -117,11 +117,11 @@ class MapsPage extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
+                color: Colors.white.withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -176,7 +176,7 @@ class MapsPage extends StatelessWidget {
         color: Colors.white,
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 5),
         ],
       ),
       child: Icon(icon, color: Colors.black54),

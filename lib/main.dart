@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'auth_gate.dart';
 import 'beranda_page.dart';
 import 'akun_page.dart';
 import 'notifikasi_page.dart';
@@ -27,7 +28,10 @@ class SiNemuApp extends StatelessWidget {
         fontFamily:
             'Inter', // Pastikan Abang nanti tambahin font di pubspec.yaml
       ),
-      home: const LoginPage(),
+      home: const AuthGate(
+        authenticatedPage: MainScreen(),
+        unauthenticatedPage: LoginPage(),
+      ),
     );
   }
 }
@@ -65,7 +69,7 @@ class _MainScreenState extends State<MainScreen> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
