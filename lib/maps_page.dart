@@ -525,12 +525,8 @@ class _MapsPageState extends State<MapsPage> {
         color: Colors.white,
         shape: BoxShape.circle,
         boxShadow: [
-<<<<<<< HEAD
           BoxShadow(
               color: Colors.black.withOpacity(0.15), blurRadius: 5),
-=======
-          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 5),
->>>>>>> 9600029d0687519c8da3c3bd47c46b8bc3ba48a4
         ],
       ),
       child: Icon(icon, color: Colors.black54, size: 20),

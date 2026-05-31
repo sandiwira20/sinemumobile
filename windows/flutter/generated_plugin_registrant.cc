@@ -9,11 +9,8 @@
 #include <file_selector_windows/file_selector_windows.h>
 #include <firebase_auth/firebase_auth_plugin_c_api.h>
 #include <firebase_core/firebase_core_plugin_c_api.h>
-<<<<<<< HEAD
-#include <geolocator_windows/geolocator_windows.h>
-=======
 #include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
->>>>>>> 9600029d0687519c8da3c3bd47c46b8bc3ba48a4
+#include <geolocator_windows/geolocator_windows.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   FileSelectorWindowsRegisterWithRegistrar(
@@ -22,11 +19,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("FirebaseAuthPluginCApi"));
   FirebaseCorePluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FirebaseCorePluginCApi"));
-<<<<<<< HEAD
-  GeolocatorWindowsRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("GeolocatorWindows"));
-=======
   FlutterSecureStorageWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
->>>>>>> 9600029d0687519c8da3c3bd47c46b8bc3ba48a4
+  GeolocatorWindowsRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("GeolocatorWindows"));
 }
