@@ -3,12 +3,18 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  file_selector_windows
   firebase_auth
   firebase_core
+<<<<<<< HEAD
   geolocator_windows
+=======
+  flutter_secure_storage_windows
+>>>>>>> 9600029d0687519c8da3c3bd47c46b8bc3ba48a4
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+  jni
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

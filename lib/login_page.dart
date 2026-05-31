@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'core/config/api_config.dart';
+import 'core/network/api_client.dart';
+import 'features/auth/services/auth_service.dart';
 import 'main.dart';
 import 'register_page.dart';
-import 'user_data.dart'; // PANGGIL BRANKASNYA
+import 'user_data.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,7 +16,23 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _isGoogleLoading = false;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+  bool _isLoginLoading = false;
+  final AuthService _authService = AuthService();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email'],
+    serverClientId: ApiConfig.googleServerClientId.isEmpty
+        ? null
+        : ApiConfig.googleServerClientId,
+  );
+  final TextEditingController _loginController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _loginController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _loginDenganGoogle() async {
     setState(() => _isGoogleLoading = true);
@@ -22,39 +41,96 @@ class _LoginPageState extends State<LoginPage> {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser != null) {
-        // --- SIMPAN DATA GOOGLE KE BRANKAS GLOBAL ---
-        UserData.nama = googleUser.displayName ?? 'Sandi Wira';
-        UserData.email = googleUser.email;
-        UserData.fotoUrl = googleUser.photoUrl ?? '';
+        final googleAuth = await googleUser.authentication;
+        final idToken = googleAuth.idToken;
+
+        if (idToken == null || idToken.trim().isEmpty) {
+          if (mounted) {
+            _showError('Token Google tidak tersedia. Coba lagi.');
+          }
+          return;
+        }
+
+        await _authService.loginWithGoogle(idToken: idToken);
+
+        final googlePhotoUrl = googleUser.photoUrl?.trim();
+        if (UserData.fotoUrl.trim().isEmpty &&
+            googlePhotoUrl != null &&
+            googlePhotoUrl.isNotEmpty) {
+          UserData.fotoUrl = googlePhotoUrl;
+        }
 
         if (mounted) {
+          final userName = UserData.nama.trim().isEmpty
+              ? googleUser.email
+              : UserData.nama.trim();
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Selamat datang, ${UserData.nama}!'),
+              content: Text('Selamat datang, $userName!'),
               backgroundColor: Colors.green,
             ),
           );
 
-          // Lempar ke MainScreen (Beranda)
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const MainScreen()),
           );
         }
-      } else {
-        setState(() => _isGoogleLoading = false);
+      }
+    } on ApiException catch (error) {
+      if (mounted) {
+        _showError(error.message);
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal login: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showError('Login Google gagal. Coba lagi beberapa saat.');
       }
-      setState(() => _isGoogleLoading = false);
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
+      }
     }
+  }
+
+  Future<void> _loginDenganApi() async {
+    final login = _loginController.text.trim();
+    final password = _passwordController.text;
+
+    if (login.isEmpty || password.isEmpty) {
+      _showError('Login dan password wajib diisi.');
+      return;
+    }
+
+    setState(() => _isLoginLoading = true);
+
+    try {
+      await _authService.login(login: login, password: password);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
+    } on ApiException catch (error) {
+      if (mounted) {
+        _showError(error.message);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showError('Login gagal. Coba lagi beberapa saat.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoginLoading = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -81,12 +157,21 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 40),
 
-                _buildTextField('Email Mahasiswa', Icons.email_outlined),
+                _buildTextField(
+                  'Email atau Username',
+                  Icons.email_outlined,
+                  controller: _loginController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                ),
                 const SizedBox(height: 20),
                 _buildTextField(
                   'Password',
                   Icons.lock_outline,
+                  controller: _passwordController,
                   isPassword: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _loginDenganApi(),
                 ),
                 const SizedBox(height: 30),
 
@@ -94,27 +179,29 @@ class _LoginPageState extends State<LoginPage> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const MainScreen(),
-                        ),
-                      );
-                    },
+                    onPressed: _isLoginLoading ? null : _loginDenganApi,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A90E2),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
                     ),
-                    child: const Text(
-                      'MASUK',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isLoginLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'MASUK',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
 
@@ -126,7 +213,9 @@ class _LoginPageState extends State<LoginPage> {
                   width: double.infinity,
                   height: 55,
                   child: OutlinedButton.icon(
-                    onPressed: _isGoogleLoading ? null : _loginDenganGoogle,
+                    onPressed: _isGoogleLoading || _isLoginLoading
+                        ? null
+                        : _loginDenganGoogle,
                     icon: _isGoogleLoading
                         ? const SizedBox(
                             width: 20,
@@ -188,10 +277,19 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildTextField(
     String label,
     IconData icon, {
+    TextEditingController? controller,
     bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
   }) {
     return TextField(
+      controller: controller,
+      enabled: !_isLoginLoading,
       obscureText: isPassword,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: const Color(0xFF4A90E2)),
         labelText: label,

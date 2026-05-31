@@ -1,39 +1,39 @@
-{
-  "project_info": {
-    "project_number": "587663848700",
-    "project_id": "sinemu-final",
-    "storage_bucket": "sinemu-final.firebasestorage.app"
-  },
-  "client": [
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:587663848700:android:cf81a6b804149e63a0d379",
-        "android_client_info": {
-          "package_name": "com.example.sinemu"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "587663848700-ntj27lsb6m45ub9erami05l1cmro361b.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCwPPnr8FIilsiD_9uivecTGlmEhzPMU9o"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "587663848700-ntj27lsb6m45ub9erami05l1cmro361b.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+  {
+    "project_info": {
+      "project_number": "587663848700",
+      "project_id": "sinemu-final",
+      "storage_bucket": "sinemu-final.firebasestorage.app"
+    },
+    "client": [
+      {
+        "client_info": {
+          "mobilesdk_app_id": "1:587663848700:android:cf81a6b804149e63a0d379",
+          "android_client_info": {
+            "package_name": "com.example.sinemu"
+          }
+        },
+        "oauth_client": [
+          {
+            "client_id": "587663848700-ntj27lsb6m45ub9erami05l1cmro361b.apps.googleusercontent.com",
+            "client_type": 3
+          }
+        ],
+        "api_key": [
+          {
+            "current_key": "AIzaSyCwPPnr8FIilsiD_9uivecTGlmEhzPMU9o"
+          }
+        ],
+        "services": {
+          "appinvite_service": {
+            "other_platform_oauth_client": [
+              {
+                "client_id": "587663848700-ntj27lsb6m45ub9erami05l1cmro361b.apps.googleusercontent.com",
+                "client_type": 3
+              }
+            ]
+          }
         }
       }
-    }
-  ],
-  "configuration_version": "1"
-}
+    ],
+    "configuration_version": "1"
+  }
