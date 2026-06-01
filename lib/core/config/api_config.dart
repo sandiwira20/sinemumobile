@@ -9,5 +9,5 @@ class ApiConfig {
     defaultValue: '',
   );
 
-  static const Duration timeout = Duration(seconds: 20);
+  static const Duration timeout = Duration(seconds: 60);
 }
