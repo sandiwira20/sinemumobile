@@ -35,6 +35,29 @@ class AuthService {
     return _persistLoginResponse(response);
   }
 
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String username,
+    required String email,
+    required String phone,
+    required String password,
+  }) async {
+    final response = await _apiClient.post(
+      '/register',
+      requiresAuth: false,
+      body: {
+        'name': name,
+        'username': username,
+        'email': email,
+        'phone': phone,
+        'password': password,
+        'password_confirmation': password,
+      },
+    );
+
+    return _persistLoginResponse(response);
+  }
+
   Future<Map<String, dynamic>> _persistLoginResponse(dynamic response) async {
     final data = _asMap(response);
     final token = _extractToken(data);
