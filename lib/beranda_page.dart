@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'pencarian_page.dart';
@@ -9,6 +10,7 @@ import 'core/network/api_client.dart';
 import 'features/laporan/models/laporan_model.dart';
 import 'features/laporan/services/laporan_service.dart';
 import 'user_data.dart';
+import 'lapor_temuan_page.dart';
 
 // UBAH JADI STATEFUL WIDGET BIAR BISA NAMPILIN DATA DINAMIS
 class BerandaPage extends StatefulWidget {
@@ -19,6 +21,177 @@ class BerandaPage extends StatefulWidget {
 }
 
 class _BerandaPageState extends State<BerandaPage> {
+  // --- MULAI PASTE DARI SINI ---
+  void _showLaporOptions(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "TutupPilihanLapor",
+      barrierColor: Colors.black.withOpacity(0.5),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // Efek Blur
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(25),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header Popup
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4A90E2).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.assignment_outlined,
+                            color: Color(0xFF4A90E2),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        const Expanded(
+                          child: Text(
+                            "Buat Laporan",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Pilih jenis laporan yang ingin Anda buat.",
+                      style: TextStyle(color: Colors.black54, fontSize: 14),
+                      textAlign: TextAlign.left,
+                    ),
+                    const SizedBox(height: 30),
+
+                    // OPSI 1: BARANG HILANG
+                    _buildMenuOption(
+                      icon: Icons.search_off,
+                      color: Colors.orangeAccent,
+                      title: "Lapor Barang Hilang",
+                      subtitle: "Bantu temukan barang Anda yang hilang.",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => LaporPage()),
+                        );
+                        // Tutup popup
+                        // Nanti buka komen di bawah kalau halamannya udah siap!
+                        // Navigator.push(context, MaterialPageRoute(builder: (context) => const LaporPage()));
+                      },
+                    ),
+                    const SizedBox(height: 15),
+
+                    // OPSI 2: BARANG TEMUAN
+                    _buildMenuOption(
+                      icon: Icons.check_circle_outline,
+                      color: const Color(0xFF4A90E2),
+                      title: "Lapor Barang Temuan",
+                      subtitle: "Kembalikan barang yang Anda temukan.",
+                      onTap: () {
+                        Navigator.pop(context); // Tutup popup
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LaporTemuanPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMenuOption({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200, width: 2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- SAMPAI SINI PASTE-NYA ---
   static const int _homeItemLimit = 5;
 
   final LaporanService _laporanService = LaporanService();
@@ -195,12 +368,7 @@ class _BerandaPageState extends State<BerandaPage> {
                       Row(
                         children: [
                           ElevatedButton.icon(
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LaporPage(),
-                              ),
-                            ),
+                            onPressed: () => _showLaporOptions(context),
                             icon: const Icon(
                               Icons.add_circle_outline,
                               color: Colors.white,
