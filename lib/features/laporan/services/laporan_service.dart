@@ -155,6 +155,11 @@ class LaporanService {
   Future<List<LaporanModel>> getLaporanPublik() async =>
       _getLaporanFrom('/laporan/publik');
 
+  Future<List<LaporanModel>> searchLaporan(String keyword) async {
+    final encodedKeyword = Uri.encodeComponent(keyword.trim());
+    return _getLaporanFrom('/laporan/publik?search=$encodedKeyword');
+  }
+
   Future<List<LaporanModel>> _getLaporanFrom(String path) async {
     final response = await _apiClient.get(path);
     return _extractList(response)

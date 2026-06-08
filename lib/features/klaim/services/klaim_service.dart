@@ -60,7 +60,7 @@ class KlaimService {
       '/barang-temuan/$barangId/klaim',
       fields: fields,
       files: buktiFoto,
-      fileField: 'bukti_foto',
+      fileField: 'bukti_foto[]',
     );
   }
 
