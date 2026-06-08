@@ -6,8 +6,8 @@ import 'features/auth/services/auth_service.dart';
 import 'features/profile/models/profile_model.dart';
 import 'features/profile/services/profile_service.dart';
 import 'login_page.dart';
-import 'riwayat_klaim_page.dart';
-import 'user_data.dart'; // PANGGIL BRANKASNYA
+import 'laporan_saya_page.dart';
+import 'user_data.dart';
 
 class AkunPage extends StatefulWidget {
   const AkunPage({super.key});
@@ -212,13 +212,13 @@ class _AkunPageState extends State<AkunPage> {
               ),
               const Divider(height: 1),
               _buildActionTile(
-                Icons.assignment_turned_in_outlined,
-                'RIWAYAT KLAIM',
-                'Lihat status klaim barang temuan',
+                Icons.assignment_outlined,
+                'LAPORAN SAYA',
+                'Lihat laporan hilang & riwayat klaim',
                 () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const RiwayatKlaimPage(),
+                    builder: (context) => const LaporanSayaPage(),
                   ),
                 ),
               ),

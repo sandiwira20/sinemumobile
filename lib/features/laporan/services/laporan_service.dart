@@ -12,39 +12,69 @@ class LaporanRequest {
     required this.lokasi,
     required this.deskripsi,
     required this.tanggal,
+    // Opsional
+    this.warnaDominan,
+    this.merek,
+    this.nomorSeri,
+    this.perkiraanJam,
+    this.detailLokasi,
+    this.ciriUnik,
+    this.noWa,
+    this.buktiKepemilikan,
   });
 
   final JenisLaporan jenis;
   final String namaBarang;
-  final String kategoriId;
+  final String? kategoriId;
   final String wilayahId;
   final String lokasi;
   final String deskripsi;
   final DateTime tanggal;
+  final String? warnaDominan;
+  final String? merek;
+  final String? nomorSeri;
+  final dynamic perkiraanJam; // TimeOfDay
+  final String? detailLokasi;
+  final String? ciriUnik;
+  final String? noWa;
+  final String? buktiKepemilikan;
 
   Map<String, dynamic> toJson() {
     final tanggalKey = jenis == JenisLaporan.hilang
         ? 'tanggal_hilang'
         : 'tanggal_ditemukan';
 
-    return {
+    final data = <String, dynamic>{
       'nama_barang': namaBarang,
-      'kategori_id': _normalizeId(kategoriId),
       'wilayah_id': _normalizeId(wilayahId),
       'lokasi': lokasi,
       'deskripsi': deskripsi,
       tanggalKey: _formatDate(tanggal),
     };
+
+    if (kategoriId != null) data['kategori_id'] = _normalizeId(kategoriId!);
+
+    // Field opsional — hanya dikirim jika diisi
+    if (warnaDominan != null) data['warna_dominan'] = warnaDominan;
+    if (merek != null) data['merek'] = merek;
+    if (nomorSeri != null) data['nomor_seri'] = nomorSeri;
+    if (detailLokasi != null) data['detail_lokasi'] = detailLokasi;
+    if (ciriUnik != null) data['ciri_unik'] = ciriUnik;
+    if (noWa != null) data['no_wa'] = noWa;
+    if (buktiKepemilikan != null) data['bukti_kepemilikan'] = buktiKepemilikan;
+    if (perkiraanJam != null) {
+      final h = perkiraanJam.hour.toString().padLeft(2, '0');
+      final m = perkiraanJam.minute.toString().padLeft(2, '0');
+      data['perkiraan_jam'] = '$h:$m';
+    }
+
+    return data;
   }
 
-  Object _normalizeId(String value) {
-    return int.tryParse(value) ?? value;
-  }
+  Object _normalizeId(String value) => int.tryParse(value) ?? value;
 
-  String _formatDate(DateTime value) {
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '${value.year}-$month-$day';
+  String _formatDate(DateTime v) {
+    return '${v.year}-${v.month.toString().padLeft(2, '0')}-${v.day.toString().padLeft(2, '0')}';
   }
 }
 
@@ -56,34 +86,61 @@ class LaporanHilangUpdateRequest {
     required this.lokasi,
     required this.deskripsi,
     required this.tanggalHilang,
+    this.warnaDominan,
+    this.merek,
+    this.nomorSeri,
+    this.perkiraanJam,
+    this.detailLokasi,
+    this.ciriUnik,
+    this.noWa,
+    this.buktiKepemilikan,
   });
 
   final String namaBarang;
-  final String kategoriId;
+  final String? kategoriId;
   final String wilayahId;
   final String lokasi;
   final String deskripsi;
   final DateTime tanggalHilang;
+  final String? warnaDominan;
+  final String? merek;
+  final String? nomorSeri;
+  final dynamic perkiraanJam;
+  final String? detailLokasi;
+  final String? ciriUnik;
+  final String? noWa;
+  final String? buktiKepemilikan;
 
   Map<String, dynamic> toJson() {
-    return {
+    final data = <String, dynamic>{
       'nama_barang': namaBarang,
-      'kategori_id': _normalizeId(kategoriId),
       'wilayah_id': _normalizeId(wilayahId),
       'lokasi': lokasi,
       'deskripsi': deskripsi,
       'tanggal_hilang': _formatDate(tanggalHilang),
     };
+
+    if (kategoriId != null) data['kategori_id'] = _normalizeId(kategoriId!);
+    if (warnaDominan != null) data['warna_dominan'] = warnaDominan;
+    if (merek != null) data['merek'] = merek;
+    if (nomorSeri != null) data['nomor_seri'] = nomorSeri;
+    if (detailLokasi != null) data['detail_lokasi'] = detailLokasi;
+    if (ciriUnik != null) data['ciri_unik'] = ciriUnik;
+    if (noWa != null) data['no_wa'] = noWa;
+    if (buktiKepemilikan != null) data['bukti_kepemilikan'] = buktiKepemilikan;
+    if (perkiraanJam != null) {
+      final h = perkiraanJam.hour.toString().padLeft(2, '0');
+      final m = perkiraanJam.minute.toString().padLeft(2, '0');
+      data['perkiraan_jam'] = '$h:$m';
+    }
+
+    return data;
   }
 
-  Object _normalizeId(String value) {
-    return int.tryParse(value) ?? value;
-  }
+  Object _normalizeId(String value) => int.tryParse(value) ?? value;
 
-  String _formatDate(DateTime value) {
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '${value.year}-$month-$day';
+  String _formatDate(DateTime v) {
+    return '${v.year}-${v.month.toString().padLeft(2, '0')}-${v.day.toString().padLeft(2, '0')}';
   }
 }
 
@@ -93,19 +150,14 @@ class LaporanService {
 
   final ApiClient _apiClient;
 
-  Future<List<LaporanModel>> getLaporan() async {
-    return _getLaporanFrom('/laporan');
-  }
+  Future<List<LaporanModel>> getLaporan() async => _getLaporanFrom('/laporan');
 
-  Future<List<LaporanModel>> getLaporanPublik() async {
-    return _getLaporanFrom('/laporan/publik');
-  }
+  Future<List<LaporanModel>> getLaporanPublik() async =>
+      _getLaporanFrom('/laporan/publik');
 
   Future<List<LaporanModel>> _getLaporanFrom(String path) async {
     final response = await _apiClient.get(path);
-    final items = _extractList(response);
-
-    return items
+    return _extractList(response)
         .whereType<Map>()
         .map((item) => LaporanModel.fromJson(Map<String, dynamic>.from(item)))
         .toList();
@@ -121,16 +173,12 @@ class LaporanService {
       'temuan' => '/laporan/temuan/$id',
       _ => throw const ApiException('Jenis laporan tidak dikenali.'),
     };
-
     final response = await _apiClient.get(path);
     final data = _extractMap(response);
-    if (data['id'] == null || data['id'].toString().trim().isEmpty) {
+    if (data['id'] == null || data['id'].toString().trim().isEmpty)
       data['id'] = id;
-    }
-    if (data['type'] == null || data['type'].toString().trim().isEmpty) {
+    if (data['type'] == null || data['type'].toString().trim().isEmpty)
       data['type'] = normalizedType;
-    }
-
     return LaporanModel.fromJson(data);
   }
 
@@ -138,7 +186,6 @@ class LaporanService {
     final path = request.jenis == JenisLaporan.hilang
         ? '/laporan/hilang'
         : '/laporan/temuan';
-
     if (_hasFoto(fotoPath)) {
       return _apiClient.multipart(
         'POST',
@@ -147,7 +194,6 @@ class LaporanService {
         files: [_fotoFile(fotoPath!)],
       );
     }
-
     return _apiClient.post(path, body: request.toJson());
   }
 
@@ -165,7 +211,6 @@ class LaporanService {
       );
       return;
     }
-
     await _apiClient.put('/laporan/hilang/$id', body: request.toJson());
   }
 
@@ -173,20 +218,16 @@ class LaporanService {
     await _apiClient.delete('/laporan/hilang/$id');
   }
 
-  List<dynamic> _extractList(dynamic response) {
-    if (response is List) {
-      return response;
-    }
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+  List<dynamic> _extractList(dynamic response) {
+    if (response is List) return response;
     if (response is Map<String, dynamic>) {
       for (final key in ['data', 'laporan', 'laporans', 'items']) {
         final list = _listFromValue(response[key]);
-        if (list != null) {
-          return list;
-        }
+        if (list != null) return list;
       }
     }
-
     throw const ApiException('Format daftar laporan dari server tidak sesuai.');
   }
 
@@ -194,51 +235,34 @@ class LaporanService {
     if (response is Map<String, dynamic>) {
       for (final key in ['data', 'laporan', 'item']) {
         final value = response[key];
-        if (value is Map) {
-          return Map<String, dynamic>.from(value);
-        }
+        if (value is Map) return Map<String, dynamic>.from(value);
       }
-
       return response;
     }
-
     throw const ApiException('Format detail laporan dari server tidak sesuai.');
   }
 
   List<dynamic>? _listFromValue(dynamic value) {
-    if (value is List) {
-      return value;
-    }
-
+    if (value is List) return value;
     if (value is Map<String, dynamic>) {
-      final nestedData = value['data'];
-      if (nestedData is List) {
-        return nestedData;
-      }
+      final nested = value['data'];
+      if (nested is List) return nested;
     }
-
     return null;
   }
 
   String _normalizeType(String value) {
-    final normalized = value.toLowerCase().trim();
-    if (normalized.contains('hilang')) return 'hilang';
-    if (normalized.contains('temuan') || normalized.contains('ditemukan')) {
-      return 'temuan';
-    }
-
-    return normalized;
+    final n = value.toLowerCase().trim();
+    if (n.contains('hilang')) return 'hilang';
+    if (n.contains('temuan') || n.contains('ditemukan')) return 'temuan';
+    return n;
   }
 
-  bool _hasFoto(String? fotoPath) {
-    return fotoPath != null && fotoPath.trim().isNotEmpty;
-  }
+  bool _hasFoto(String? p) => p != null && p.trim().isNotEmpty;
 
-  MultipartUploadFile _fotoFile(String fotoPath) {
-    return MultipartUploadFile(fieldName: 'foto', filePath: fotoPath);
-  }
+  MultipartUploadFile _fotoFile(String path) =>
+      MultipartUploadFile(fieldName: 'foto', filePath: path);
 
-  Map<String, String> _stringifyFields(Map<String, dynamic> fields) {
-    return fields.map((key, value) => MapEntry(key, value.toString()));
-  }
+  Map<String, String> _stringifyFields(Map<String, dynamic> fields) =>
+      fields.map((k, v) => MapEntry(k, v.toString()));
 }

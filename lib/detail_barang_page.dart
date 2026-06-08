@@ -50,7 +50,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
 
   bool _isLoadingDetail = false;
   bool _isDeleting = false;
-  bool _isSubmittingKlaim = false;
   bool _hasChanges = false;
   String? _detailError;
   LaporanModel? _detail;
@@ -183,14 +182,17 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
     }
   }
 
+  // ✅ FIXED: Hapus _isSubmittingKlaim & setState ke parent dari dalam dialog
   Future<void> _openKlaimDialog() async {
     if (!_canKlaimTemuan) return;
 
     final alasanController = TextEditingController();
     final kontakController = TextEditingController();
 
+    bool? success;
+
     try {
-      final success = await showDialog<bool>(
+      success = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) {
@@ -212,9 +214,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
                   errorMessage = null;
                   isSubmitting = true;
                 });
-                if (mounted) {
-                  setState(() => _isSubmittingKlaim = true);
-                }
 
                 try {
                   await _klaimService.submitKlaimBarangTemuan(
@@ -223,25 +222,25 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
                     kontak: kontakController.text,
                   );
 
-                  if (!dialogContext.mounted) return;
-                  Navigator.pop(dialogContext, true);
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext, true);
+                  }
                 } on ApiException catch (error) {
-                  if (!dialogContext.mounted) return;
-                  setDialogState(() {
-                    errorMessage = _klaimErrorMessage(error);
-                    isSubmitting = false;
-                  });
+                  if (dialogContext.mounted) {
+                    setDialogState(() {
+                      errorMessage = _klaimErrorMessage(error);
+                      isSubmitting = false;
+                    });
+                  }
                 } catch (_) {
-                  if (!dialogContext.mounted) return;
-                  setDialogState(() {
-                    errorMessage = 'Klaim gagal dikirim. Coba lagi.';
-                    isSubmitting = false;
-                  });
-                } finally {
-                  if (mounted) {
-                    setState(() => _isSubmittingKlaim = false);
+                  if (dialogContext.mounted) {
+                    setDialogState(() {
+                      errorMessage = 'Klaim gagal dikirim. Coba lagi.';
+                      isSubmitting = false;
+                    });
                   }
                 }
+                // ✅ TIDAK ada finally setState ke parent di sini
               }
 
               return AlertDialog(
@@ -304,24 +303,25 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
           );
         },
       );
-
-      if (success == true && mounted) {
-        _showSnackBar('Klaim berhasil dikirim.');
-        if (_canLoadDetail) {
-          await _loadDetail();
-        } else if (_detail != null) {
-          setState(() {
-            _hasChanges = true;
-            _detail = _detail!.copyWith(
-              claimable: false,
-              claimBlockReason: 'Klaim sudah berhasil dikirim.',
-            );
-          });
-        }
-      }
     } finally {
       alasanController.dispose();
       kontakController.dispose();
+    }
+
+    // ✅ Handle result SETELAH dialog tutup & controller sudah di-dispose
+    if (success == true && mounted) {
+      _showSnackBar('Klaim berhasil dikirim.');
+      if (_canLoadDetail) {
+        await _loadDetail();
+      } else if (_detail != null) {
+        setState(() {
+          _hasChanges = true;
+          _detail = _detail!.copyWith(
+            claimable: false,
+            claimBlockReason: 'Klaim sudah berhasil dikirim.',
+          );
+        });
+      }
     }
   }
 
@@ -391,8 +391,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildDetailState(),
-
-                // Badge Status (Temuan / Hilang)
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -428,8 +426,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
                   ],
                 ),
                 const SizedBox(height: 15),
-
-                // Judul Barang
                 Text(
                   _displayTitle,
                   style: const TextStyle(
@@ -438,8 +434,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-
-                // Info Kategori & Waktu
                 Row(
                   children: [
                     const Icon(
@@ -469,8 +463,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
                   ],
                 ),
                 const SizedBox(height: 10),
-
-                // Info Lokasi
                 Row(
                   children: [
                     const Icon(
@@ -490,8 +482,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
                 const SizedBox(height: 25),
                 const Divider(),
                 const SizedBox(height: 15),
-
-                // Deskripsi
                 const Text(
                   'Deskripsi Barang',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -582,17 +572,9 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
           width: double.infinity,
           height: 52,
           child: ElevatedButton.icon(
-            onPressed: _isSubmittingKlaim ? null : _openKlaimDialog,
-            icon: _isSubmittingKlaim
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.assignment_turned_in_outlined),
+            // ✅ Tidak lagi pakai _isSubmittingKlaim
+            onPressed: _openKlaimDialog,
+            icon: const Icon(Icons.assignment_turned_in_outlined),
             label: const Text('Klaim Barang'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2ECC71),
@@ -744,14 +726,10 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
 
   String get _currentReportType {
     final detailType = _detail?.type.trim() ?? '';
-    if (detailType.isNotEmpty) {
-      return detailType;
-    }
+    if (detailType.isNotEmpty) return detailType;
 
     final widgetType = widget.reportType?.trim() ?? '';
-    if (widgetType.isNotEmpty) {
-      return widgetType.toLowerCase();
-    }
+    if (widgetType.isNotEmpty) return widgetType.toLowerCase();
 
     return widget.status.toLowerCase();
   }
@@ -770,9 +748,7 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
   }
 
   String? get _claimBlockReason {
-    if (!_currentReportType.contains('temuan') || _canKlaimTemuan) {
-      return null;
-    }
+    if (!_currentReportType.contains('temuan') || _canKlaimTemuan) return null;
 
     final reason = _detail?.claimBlockReason?.trim() ?? '';
     return reason.isEmpty ? null : reason;
@@ -783,9 +759,7 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
         .toLowerCase()
         .trim();
 
-    if (normalized.isEmpty) {
-      return true;
-    }
+    if (normalized.isEmpty) return true;
 
     return normalized == 'pending' ||
         normalized == 'submitted' ||
@@ -799,10 +773,7 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
 
   String get _fallbackLokasi {
     final parts = widget.location.split(' - ');
-    if (parts.length <= 1) {
-      return widget.location;
-    }
-
+    if (parts.length <= 1) return widget.location;
     return parts.sublist(1).join(' - ').trim();
   }
 
@@ -813,7 +784,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
         detailTitle != 'Tanpa nama barang') {
       return detailTitle;
     }
-
     return widget.title;
   }
 
@@ -838,49 +808,33 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
       _valueOrFallback(_detail?.imageUrl, widget.imageUrl);
 
   String get _displayLocation {
-    if (_detail == null) {
-      return widget.location;
-    }
+    if (_detail == null) return widget.location;
 
     final parts = [
       _detail!.wilayah,
       _detail!.lokasi,
-    ].where((value) => value.trim().isNotEmpty && value.trim() != '-').toList();
+    ].where((v) => v.trim().isNotEmpty && v.trim() != '-').toList();
 
-    if (parts.isEmpty) {
-      return widget.location;
-    }
-
+    if (parts.isEmpty) return widget.location;
     return parts.join(' - ');
   }
 
   String _valueOrFallback(String? value, String fallback) {
     final trimmed = value?.trim() ?? '';
-    if (trimmed.isEmpty || trimmed == '-') {
-      return fallback;
-    }
-
+    if (trimmed.isEmpty || trimmed == '-') return fallback;
     return trimmed;
   }
 
   Color _badgeColor(String value) {
     final normalized = value.toLowerCase();
-    if (normalized.contains('temuan')) {
-      return const Color(0xFF2ECC71);
-    }
-
-    if (normalized.contains('hilang')) {
-      return const Color(0xFFE74C3C);
-    }
-
+    if (normalized.contains('temuan')) return const Color(0xFF2ECC71);
+    if (normalized.contains('hilang')) return const Color(0xFFE74C3C);
     return Colors.grey;
   }
 
   Widget _buildHeroImage() {
     final imageUrl = _displayImageUrl.trim();
-    if (imageUrl.isEmpty) {
-      return _buildHeroPlaceholder();
-    }
+    if (imageUrl.isEmpty) return _buildHeroPlaceholder();
 
     return SizedBox(
       width: double.infinity,
@@ -891,10 +845,7 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
         height: 250,
         fit: BoxFit.cover,
         loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) {
-            return child;
-          }
-
+          if (loadingProgress == null) return child;
           return _buildHeroPlaceholder(isLoading: true);
         },
         errorBuilder: (context, error, stackTrace) {

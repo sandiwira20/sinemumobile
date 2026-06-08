@@ -17,6 +17,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   bool _isGoogleLoading = false;
   bool _isLoginLoading = false;
+  bool _showPassword = false; // ✅ di sini tempatnya
+
   final AuthService _authService = AuthService();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email'],
@@ -286,7 +288,7 @@ class _LoginPageState extends State<LoginPage> {
     return TextField(
       controller: controller,
       enabled: !_isLoginLoading,
-      obscureText: isPassword,
+      obscureText: isPassword && !_showPassword, // ✅ pakai variabel class
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       onSubmitted: onSubmitted,
@@ -299,6 +301,15 @@ class _LoginPageState extends State<LoginPage> {
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide.none,
         ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _showPassword ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey,
+                ),
+                onPressed: () => setState(() => _showPassword = !_showPassword),
+              )
+            : null,
       ),
     );
   }

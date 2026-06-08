@@ -17,25 +17,46 @@ class LaporPage extends StatefulWidget {
 }
 
 class _LaporPageState extends State<LaporPage> {
-  static const int _maxFotoBytes = 2 * 1024 * 1024;
-  static const Set<String> _allowedFotoExtensions = {'jpg', 'jpeg', 'png'};
+  // Web: JPG, JPEG, PNG, WEBP — maks 3MB
+  static const int _maxFotoBytes = 3 * 1024 * 1024;
+  static const Set<String> _allowedFotoExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+  };
 
   final SupportDataService _supportDataService = SupportDataService();
   final LaporanService _laporanService = LaporanService();
   final ImagePicker _imagePicker = ImagePicker();
+
+  // Controllers — identik dengan web
   final TextEditingController _namaBarangController = TextEditingController();
-  final TextEditingController _lokasiController = TextEditingController();
-  final TextEditingController _deskripsiController = TextEditingController();
+  final TextEditingController _warnaDominanController = TextEditingController();
+  final TextEditingController _merekController = TextEditingController();
+  final TextEditingController _nomorSeriController = TextEditingController();
+  final TextEditingController _lokasiController =
+      TextEditingController(); // Lokasi Hilang (singkat)
+  final TextEditingController _detailLokasiController =
+      TextEditingController(); // Detail Lokasi Hilang
+  final TextEditingController _deskripsiController =
+      TextEditingController(); // Deskripsi Barang & Kronologi
+  final TextEditingController _ciriUnikController =
+      TextEditingController(); // Ciri Unik Barang
+  final TextEditingController _noWaController =
+      TextEditingController(); // No. WA — WAJIB
+  final TextEditingController _buktiKepemilikanController =
+      TextEditingController(); // Bukti Kepemilikan
 
   bool _isSupportDataLoading = true;
   bool _isSubmitting = false;
   String? _supportDataError;
   List<KategoriModel> _kategoris = [];
   List<WilayahModel> _wilayahs = [];
-  String? _selectedJenisLaporan;
   String? _selectedKategoriId;
   String? _selectedWilayahId;
   DateTime? _selectedTanggal = DateTime.now();
+  TimeOfDay? _selectedJam;
   XFile? _selectedFoto;
 
   @override
@@ -47,21 +68,28 @@ class _LaporPageState extends State<LaporPage> {
   @override
   void dispose() {
     _namaBarangController.dispose();
+    _warnaDominanController.dispose();
+    _merekController.dispose();
+    _nomorSeriController.dispose();
     _lokasiController.dispose();
+    _detailLokasiController.dispose();
     _deskripsiController.dispose();
+    _ciriUnikController.dispose();
+    _noWaController.dispose();
+    _buktiKepemilikanController.dispose();
     super.dispose();
   }
+
+  // ─── Data Loading ───────────────────────────────────────────────────────────
 
   Future<void> _loadSupportData() async {
     setState(() {
       _isSupportDataLoading = true;
       _supportDataError = null;
     });
-
     try {
       final supportData = await _supportDataService.getSupportData();
       if (!mounted) return;
-
       setState(() {
         _kategoris = supportData.kategoris;
         _wilayahs = supportData.wilayahs;
@@ -71,7 +99,6 @@ class _LaporPageState extends State<LaporPage> {
       });
     } on ApiException catch (error) {
       if (!mounted) return;
-
       setState(() {
         _supportDataError = error.statusCode == 401
             ? 'Sesi login sudah berakhir. Silakan login ulang.'
@@ -80,13 +107,14 @@ class _LaporPageState extends State<LaporPage> {
       });
     } catch (_) {
       if (!mounted) return;
-
       setState(() {
         _supportDataError = 'Gagal memuat kategori dan wilayah.';
         _isSupportDataLoading = false;
       });
     }
   }
+
+  // ─── Submit ──────────────────────────────────────────────────────────────────
 
   Future<void> _submitLaporan() async {
     final validationMessage = _validateForm();
@@ -95,122 +123,106 @@ class _LaporPageState extends State<LaporPage> {
       return;
     }
 
-    final jenis = _jenisLaporanFromSelection(_selectedJenisLaporan!);
     final request = LaporanRequest(
-      jenis: jenis,
+      jenis: JenisLaporan.hilang,
       namaBarang: _namaBarangController.text.trim(),
       kategoriId: _selectedKategoriId!,
       wilayahId: _selectedWilayahId!,
       lokasi: _lokasiController.text.trim(),
       deskripsi: _deskripsiController.text.trim(),
       tanggal: _selectedTanggal!,
+      warnaDominan: _nullIfEmpty(_warnaDominanController.text),
+      merek: _nullIfEmpty(_merekController.text),
+      nomorSeri: _nullIfEmpty(_nomorSeriController.text),
+      perkiraanJam: _selectedJam,
+      detailLokasi: _nullIfEmpty(_detailLokasiController.text),
+      ciriUnik: _nullIfEmpty(_ciriUnikController.text),
+      noWa: _noWaController.text.trim(),
+      buktiKepemilikan: _nullIfEmpty(_buktiKepemilikanController.text),
     );
 
     setState(() => _isSubmitting = true);
-
     try {
       await _laporanService.submitLaporan(
         request,
         fotoPath: _selectedFoto?.path,
       );
       if (!mounted) return;
-
       _clearForm();
       _showSnackBar('Laporan berhasil dikirim!');
     } on ApiException catch (error) {
       if (!mounted) return;
-
       _showSnackBar(_apiErrorMessage(error), isError: true);
     } catch (_) {
       if (!mounted) return;
-
       _showSnackBar(
         'Laporan gagal dikirim. Coba lagi beberapa saat.',
         isError: true,
       );
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
+  // ─── Validation ──────────────────────────────────────────────────────────────
+
   String? _validateForm() {
-    if (_selectedJenisLaporan == null) {
-      return 'Jenis laporan wajib dipilih.';
-    }
-
-    if (_namaBarangController.text.trim().isEmpty) {
+    if (_namaBarangController.text.trim().isEmpty)
       return 'Nama barang wajib diisi.';
-    }
-
-    if (_selectedKategoriId == null) {
-      return 'Kategori wajib dipilih.';
-    }
-
-    if (_selectedWilayahId == null) {
-      return 'Wilayah wajib dipilih.';
-    }
-
-    if (_lokasiController.text.trim().isEmpty) {
-      return 'Lokasi wajib diisi.';
-    }
-
-    if (_deskripsiController.text.trim().isEmpty) {
-      return 'Deskripsi wajib diisi.';
-    }
-
-    if (_selectedTanggal == null) {
-      return _selectedJenisLaporan == 'Barang Temuan'
-          ? 'Tanggal ditemukan wajib dipilih.'
-          : 'Tanggal hilang wajib dipilih.';
-    }
-
+    if (_selectedWilayahId == null) return 'Wilayah kejadian wajib dipilih.';
+    if (_lokasiController.text.trim().isEmpty)
+      return 'Lokasi hilang wajib diisi.';
+    if (_selectedTanggal == null) return 'Tanggal hilang wajib dipilih.';
+    if (_deskripsiController.text.trim().isEmpty)
+      return 'Deskripsi barang dan kronologi wajib diisi.';
+    if (_noWaController.text.trim().isEmpty)
+      return 'No. WA yang bisa dihubungi wajib diisi.';
     return null;
   }
 
-  JenisLaporan _jenisLaporanFromSelection(String value) {
-    return value == 'Barang Hilang' ? JenisLaporan.hilang : JenisLaporan.temuan;
-  }
-
   void _clearForm() {
-    _namaBarangController.clear();
-    _lokasiController.clear();
-    _deskripsiController.clear();
+    for (final c in [
+      _namaBarangController,
+      _warnaDominanController,
+      _merekController,
+      _nomorSeriController,
+      _lokasiController,
+      _detailLokasiController,
+      _deskripsiController,
+      _ciriUnikController,
+      _noWaController,
+      _buktiKepemilikanController,
+    ]) {
+      c.clear();
+    }
     setState(() {
-      _selectedJenisLaporan = null;
       _selectedKategoriId = null;
       _selectedWilayahId = null;
       _selectedTanggal = DateTime.now();
+      _selectedJam = null;
       _selectedFoto = null;
     });
   }
 
-  Future<void> _pickTanggalLaporan() async {
+  // ─── Pickers ────────────────────────────────────────────────────────────────
+
+  Future<void> _pickTanggal() async {
     final now = DateTime.now();
-    final currentDate = _selectedTanggal ?? now;
     final picked = await showDatePicker(
       context: context,
-      initialDate: currentDate,
+      initialDate: _selectedTanggal ?? now,
       firstDate: DateTime(2000),
       lastDate: now.add(const Duration(days: 365)),
     );
-
-    if (picked != null) {
-      setState(() => _selectedTanggal = picked);
-    }
+    if (picked != null) setState(() => _selectedTanggal = picked);
   }
 
-  String _tanggalLaporanLabel() {
-    return _selectedJenisLaporan == 'Barang Temuan'
-        ? 'Tanggal Ditemukan'
-        : 'Tanggal Hilang';
-  }
-
-  String _formatDate(DateTime value) {
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '${value.year}-$month-$day';
+  Future<void> _pickJam() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedJam ?? TimeOfDay.now(),
+    );
+    if (picked != null) setState(() => _selectedJam = picked);
   }
 
   Future<void> _pickFoto() async {
@@ -219,17 +231,12 @@ class _LaporPageState extends State<LaporPage> {
         source: ImageSource.gallery,
         imageQuality: 85,
       );
-
-      if (pickedFoto == null) {
+      if (pickedFoto == null) return;
+      final msg = await _validateFoto(pickedFoto);
+      if (msg != null) {
+        _showSnackBar(msg, isError: true);
         return;
       }
-
-      final validationMessage = await _validateFoto(pickedFoto);
-      if (validationMessage != null) {
-        _showSnackBar(validationMessage, isError: true);
-        return;
-      }
-
       setState(() => _selectedFoto = pickedFoto);
     } catch (_) {
       _showSnackBar('Gagal memilih foto dari galeri.', isError: true);
@@ -237,44 +244,44 @@ class _LaporPageState extends State<LaporPage> {
   }
 
   Future<String?> _validateFoto(XFile foto) async {
-    final extension = _fotoExtension(foto);
-    if (!_allowedFotoExtensions.contains(extension)) {
-      return 'Format foto harus JPG, JPEG, atau PNG.';
+    final ext = _fotoExtension(foto);
+    if (!_allowedFotoExtensions.contains(ext)) {
+      return 'Format foto harus JPG, JPEG, PNG, atau WEBP.';
     }
-
     final size = await foto.length();
-    if (size > _maxFotoBytes) {
-      return 'Ukuran foto maksimal 2 MB.';
-    }
-
+    if (size > _maxFotoBytes) return 'Ukuran foto maksimal 3 MB.';
     return null;
   }
 
-  String _fotoExtension(XFile foto) {
-    final source = foto.name.isNotEmpty ? foto.name : foto.path;
-    final parts = source.split('.');
-    if (parts.length < 2) {
-      return '';
-    }
+  // ─── Helpers ────────────────────────────────────────────────────────────────
 
-    return parts.last.toLowerCase();
+  String? _nullIfEmpty(String value) =>
+      value.trim().isEmpty ? null : value.trim();
+
+  String _fotoExtension(XFile foto) {
+    final src = foto.name.isNotEmpty ? foto.name : foto.path;
+    final parts = src.split('.');
+    return parts.length < 2 ? '' : parts.last.toLowerCase();
   }
 
   String _fotoName(XFile foto) {
-    if (foto.name.isNotEmpty) {
-      return foto.name;
-    }
-
+    if (foto.name.isNotEmpty) return foto.name;
     return foto.path.split(Platform.pathSeparator).last;
   }
 
-  String _apiErrorMessage(ApiException error) {
-    return switch (error.statusCode) {
-      401 => 'Sesi login sudah berakhir. Silakan login ulang.',
-      413 => 'Ukuran foto terlalu besar.',
-      _ => error.message,
-    };
+  String _formatDate(DateTime v) {
+    return '${v.year}-${v.month.toString().padLeft(2, '0')}-${v.day.toString().padLeft(2, '0')}';
   }
+
+  String _formatTime(TimeOfDay v) {
+    return '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _apiErrorMessage(ApiException error) => switch (error.statusCode) {
+    401 => 'Sesi login sudah berakhir. Silakan login ulang.',
+    413 => 'Ukuran foto terlalu besar.',
+    _ => error.message,
+  };
 
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -285,6 +292,8 @@ class _LaporPageState extends State<LaporPage> {
     );
   }
 
+  // ─── BUILD ───────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -294,7 +303,7 @@ class _LaporPageState extends State<LaporPage> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         title: const Text(
-          'Buat Laporan',
+          'Lapor Barang Hilang',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -304,82 +313,160 @@ class _LaporPageState extends State<LaporPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- JENIS LAPORAN ---
-            const Text(
-              'Jenis Laporan',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            // Info hint
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F4FD),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Isi data secara lengkap agar tim SiNemu lebih cepat membantu proses pencarian.',
+                style: TextStyle(color: Colors.blue.shade700, fontSize: 13),
+              ),
             ),
-            const SizedBox(height: 10),
-            _buildDropdown(
-              ['Barang Hilang', 'Barang Temuan'],
-              'Pilih jenis laporan',
-              value: _selectedJenisLaporan,
-              onChanged: _isSubmitting
-                  ? null
-                  : (value) {
-                      setState(() => _selectedJenisLaporan = value);
-                    },
-            ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 24),
 
-            // --- NAMA BARANG ---
-            const Text(
-              'Nama Barang',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 10),
+            // ── 1. Nama Barang ───────────────────────────────────────────────
+            _buildLabel('Nama Barang', required: true),
+            const SizedBox(height: 8),
             _buildTextField(
-              'Contoh: Dompet Hitam, Kunci Motor...',
+              'Contoh: Dompet Coklat',
               controller: _namaBarangController,
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
 
-            _buildSupportDataSection(),
-            const SizedBox(height: 25),
-
-            // --- LOKASI ---
-            const Text(
-              'Lokasi Kejadian',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            // ── 2. Wilayah Kejadian ──────────────────────────────────────────
+            _buildLabel('Wilayah Kejadian', required: true),
+            const SizedBox(height: 8),
+            _buildSupportDataWilayah(),
+            const SizedBox(height: 6),
+            Text(
+              'Laporan akan masuk ke pengelola barang wilayah yang dipilih.',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
+
+            // ── 3. Kategori Barang ───────────────────────────────────────────
+            _buildLabel('Kategori Barang'),
+            const SizedBox(height: 8),
+            _buildSupportDataKategori(),
+            const SizedBox(height: 20),
+
+            // ── 4. Warna Dominan ─────────────────────────────────────────────
+            _buildLabel('Warna Dominan'),
+            const SizedBox(height: 8),
             _buildTextField(
-              'Lokasi terakhir dilihat / ditemukan...',
+              'Contoh: Hitam',
+              controller: _warnaDominanController,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 5. Merek / Brand ─────────────────────────────────────────────
+            _buildLabel('Merek / Brand'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Samsung, Eiger, Casio',
+              controller: _merekController,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 6. Nomor Seri / Kode Unik ────────────────────────────────────
+            _buildLabel('Nomor Seri / Kode Unik'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: IMEI, nomor seri, kode produksi',
+              controller: _nomorSeriController,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 7. Lokasi Hilang ─────────────────────────────────────────────
+            _buildLabel('Lokasi Hilang', required: true),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Area parkir timur',
               controller: _lokasiController,
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
 
-            Text(
-              _tanggalLaporanLabel(),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 10),
+            // ── 8. Tanggal Hilang ────────────────────────────────────────────
+            _buildLabel('Tanggal Hilang', required: true),
+            const SizedBox(height: 8),
             _buildDateField(),
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
 
-            // --- DESKRIPSI ---
-            const Text(
-              'Deskripsi Tambahan',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 10),
+            // ── 9. Perkiraan Jam Hilang ──────────────────────────────────────
+            _buildLabel('Perkiraan Jam Hilang'),
+            const SizedBox(height: 8),
+            _buildTimeField(),
+            const SizedBox(height: 20),
+
+            // ── 10. Detail Lokasi Hilang ─────────────────────────────────────
+            _buildLabel('Detail Lokasi Hilang'),
+            const SizedBox(height: 8),
             _buildTextField(
-              'Sebutkan ciri-ciri khusus (warna, merk, isi dompet, dll)...',
+              'Contoh: Dekat ATM sisi kiri, sekitar 10 meter dari pintu utama.',
+              controller: _detailLokasiController,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 11. Deskripsi Barang dan Kronologi Singkat ───────────────────
+            _buildLabel(
+              'Deskripsi Barang dan Kronologi Singkat',
+              required: true,
+            ),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Jelaskan barang, kapan terakhir terlihat, dan kronologi singkat kejadian.',
               controller: _deskripsiController,
               maxLines: 4,
             ),
-            const SizedBox(height: 25),
-
-            // --- UPLOAD FOTO ---
-            const Text(
-              'Foto Barang (Jika Ada)',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            const SizedBox(height: 6),
+            Text(
+              'Data yang lebih rinci akan memudahkan proses validasi.',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
+
+            // ── 12. Ciri Unik Barang ─────────────────────────────────────────
+            _buildLabel('Ciri Unik Barang'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Ada stiker kampus di sisi belakang, resleting kiri agak seret.',
+              controller: _ciriUnikController,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 13. No. WA yang Bisa Dihubungi ──────────────────────────────
+            _buildLabel('No. WA yang Bisa Dihubungi', required: true),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: 081234567890',
+              controller: _noWaController,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 14. Bukti Kepemilikan ────────────────────────────────────────
+            _buildLabel('Bukti Kepemilikan (Opsional)'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Ada foto saat barang dipakai, nomor seri, atau detail isi barang yang hanya pemilik tahu.',
+              controller: _buktiKepemilikanController,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 15. Foto Barang ──────────────────────────────────────────────
+            _buildLabel('Foto Barang (Opsional)'),
+            const SizedBox(height: 8),
             _buildFotoPicker(),
             const SizedBox(height: 40),
 
-            // --- TOMBOL KIRIM ---
+            // ── Tombol Kirim ─────────────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -417,52 +504,195 @@ class _LaporPageState extends State<LaporPage> {
     );
   }
 
-  Widget _buildSupportDataSection() {
-    if (_isSupportDataLoading) {
-      return _buildSupportDataLoading();
-    }
+  // ─── Section Widgets ─────────────────────────────────────────────────────────
 
-    if (_supportDataError != null) {
-      return _buildSupportDataError();
-    }
+  /// Wilayah saja (terpisah agar bisa ditempatkan sendiri)
+  Widget _buildSupportDataWilayah() {
+    if (_isSupportDataLoading) return _buildSupportDataLoading();
+    if (_supportDataError != null) return _buildSupportDataError();
+    return _buildWilayahDropdown();
+  }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  /// Kategori saja
+  Widget _buildSupportDataKategori() {
+    if (_isSupportDataLoading) return _buildSupportDataLoading();
+    if (_supportDataError != null) return const SizedBox.shrink();
+    return _buildKategoriDropdown();
+  }
+
+  // ─── Field Widgets ───────────────────────────────────────────────────────────
+
+  Widget _buildLabel(String text, {bool required = false}) {
+    return Row(
       children: [
-        const Text(
-          'Kategori',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        Flexible(
+          child: Text(
+            text,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
         ),
-        const SizedBox(height: 10),
-        _buildKategoriDropdown(),
-        const SizedBox(height: 25),
-        const Text(
-          'Wilayah',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 10),
-        _buildWilayahDropdown(),
+        if (required)
+          const Text(
+            ' *',
+            style: TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildFotoPicker() {
-    final selectedFoto = _selectedFoto;
+  Widget _buildTextField(
+    String hint, {
+    TextEditingController? controller,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
+    return TextField(
+      controller: controller,
+      enabled: !_isSubmitting,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
 
+  Widget _buildKategoriDropdown() {
+    if (_kategoris.isEmpty)
+      return _buildEmptySupportDataField('Belum ada kategori dari server');
+    return DropdownButtonFormField<String>(
+      key: ValueKey('kategori-${_selectedKategoriId ?? 'empty'}'),
+      initialValue: _selectedKategoriId,
+      decoration: _fieldDecoration(),
+      hint: Text(
+        'Pilih kategori',
+        style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+      ),
+      items: _kategoris
+          .map((k) => DropdownMenuItem(value: k.id, child: Text(k.nama)))
+          .toList(),
+      onChanged: _isSubmitting
+          ? null
+          : (v) => setState(() => _selectedKategoriId = v),
+    );
+  }
+
+  Widget _buildWilayahDropdown() {
+    if (_wilayahs.isEmpty)
+      return _buildEmptySupportDataField('Belum ada wilayah dari server');
+    return DropdownButtonFormField<String>(
+      key: ValueKey('wilayah-${_selectedWilayahId ?? 'empty'}'),
+      initialValue: _selectedWilayahId,
+      decoration: _fieldDecoration(),
+      hint: Text(
+        'Pilih kecamatan',
+        style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+      ),
+      items: _wilayahs
+          .map((w) => DropdownMenuItem(value: w.id, child: Text(w.nama)))
+          .toList(),
+      onChanged: _isSubmitting
+          ? null
+          : (v) => setState(() => _selectedWilayahId = v),
+    );
+  }
+
+  Widget _buildDateField() {
+    return InkWell(
+      onTap: _isSubmitting ? null : _pickTanggal,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 18,
+              color: Colors.grey.shade600,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _selectedTanggal == null
+                  ? 'dd/mm/tttt'
+                  : _formatDate(_selectedTanggal!),
+              style: TextStyle(
+                color: _selectedTanggal == null
+                    ? Colors.grey.shade400
+                    : Colors.black,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeField() {
+    return InkWell(
+      onTap: _isSubmitting ? null : _pickJam,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.access_time_outlined,
+              size: 18,
+              color: Colors.grey.shade600,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _selectedJam == null ? '-- : --' : _formatTime(_selectedJam!),
+              style: TextStyle(
+                color: _selectedJam == null
+                    ? Colors.grey.shade400
+                    : Colors.black,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFotoPicker() {
     return InkWell(
       onTap: _isSubmitting ? null : _pickFoto,
-      borderRadius: BorderRadius.circular(15),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         width: double.infinity,
         height: 150,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade200),
         ),
-        child: selectedFoto == null
+        child: _selectedFoto == null
             ? _buildFotoPlaceholder()
-            : _buildFotoPreview(selectedFoto),
+            : _buildFotoPreview(_selectedFoto!),
       ),
     );
   }
@@ -479,7 +709,7 @@ class _LaporPageState extends State<LaporPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          'JPG, JPEG, PNG maks. 2 MB',
+          'JPG, JPEG, PNG, WEBP maks. 3 MB',
           style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
         ),
       ],
@@ -491,7 +721,7 @@ class _LaporPageState extends State<LaporPage> {
       children: [
         Positioned.fill(
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(12),
             child: Image.file(File(foto.path), fit: BoxFit.cover),
           ),
         ),
@@ -521,7 +751,7 @@ class _LaporPageState extends State<LaporPage> {
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.55),
               borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(15),
+                bottom: Radius.circular(12),
               ),
             ),
             child: Text(
@@ -536,100 +766,13 @@ class _LaporPageState extends State<LaporPage> {
     );
   }
 
-  Widget _buildKategoriDropdown() {
-    if (_kategoris.isEmpty) {
-      return _buildEmptySupportDataField('Belum ada kategori dari server');
-    }
-
-    return DropdownButtonFormField<String>(
-      key: ValueKey('kategori-${_selectedKategoriId ?? 'empty'}'),
-      initialValue: _selectedKategoriId,
-      decoration: _fieldDecoration(),
-      hint: Text(
-        'Pilih kategori barang',
-        style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-      ),
-      items: _kategoris.map((kategori) {
-        return DropdownMenuItem<String>(
-          value: kategori.id,
-          child: Text(kategori.nama),
-        );
-      }).toList(),
-      onChanged: _isSubmitting
-          ? null
-          : (value) {
-              setState(() => _selectedKategoriId = value);
-            },
-    );
-  }
-
-  Widget _buildWilayahDropdown() {
-    if (_wilayahs.isEmpty) {
-      return _buildEmptySupportDataField('Belum ada wilayah dari server');
-    }
-
-    return DropdownButtonFormField<String>(
-      key: ValueKey('wilayah-${_selectedWilayahId ?? 'empty'}'),
-      initialValue: _selectedWilayahId,
-      decoration: _fieldDecoration(),
-      hint: Text(
-        'Pilih wilayah kejadian',
-        style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-      ),
-      items: _wilayahs.map((wilayah) {
-        return DropdownMenuItem<String>(
-          value: wilayah.id,
-          child: Text(wilayah.nama),
-        );
-      }).toList(),
-      onChanged: _isSubmitting
-          ? null
-          : (value) {
-              setState(() => _selectedWilayahId = value);
-            },
-    );
-  }
-
-  Widget _buildDateField() {
-    final selectedTanggal = _selectedTanggal;
-
-    return InkWell(
-      onTap: _isSubmitting ? null : _pickTanggalLaporan,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today_outlined, size: 18),
-            const SizedBox(width: 10),
-            Text(
-              selectedTanggal == null
-                  ? 'Pilih tanggal'
-                  : _formatDate(selectedTanggal),
-              style: TextStyle(
-                color: selectedTanggal == null
-                    ? Colors.grey.shade400
-                    : Colors.black,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSupportDataLoading() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
@@ -640,7 +783,7 @@ class _LaporPageState extends State<LaporPage> {
           ),
           const SizedBox(width: 12),
           Text(
-            'Memuat kategori dan wilayah...',
+            'Memuat data...',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
           ),
         ],
@@ -654,7 +797,7 @@ class _LaporPageState extends State<LaporPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.red.shade100),
       ),
       child: Column(
@@ -680,7 +823,7 @@ class _LaporPageState extends State<LaporPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         message,
@@ -689,57 +832,12 @@ class _LaporPageState extends State<LaporPage> {
     );
   }
 
-  // WIDGET BANTUAN: Untuk Form Input Teks
-  Widget _buildTextField(
-    String hint, {
-    TextEditingController? controller,
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      enabled: !_isSubmitting,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  // WIDGET BANTUAN: Untuk Form Dropdown (Pilihan)
-  Widget _buildDropdown(
-    List<String> items,
-    String hint, {
-    String? value,
-    ValueChanged<String?>? onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      key: ValueKey('dropdown-$hint-${value ?? 'empty'}'),
-      initialValue: value,
-      decoration: _fieldDecoration(),
-      hint: Text(
-        hint,
-        style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-      ),
-      items: items.map((String value) {
-        return DropdownMenuItem<String>(value: value, child: Text(value));
-      }).toList(),
-      onChanged: _isSubmitting ? null : onChanged,
-    );
-  }
-
   InputDecoration _fieldDecoration() {
     return InputDecoration(
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
     );
