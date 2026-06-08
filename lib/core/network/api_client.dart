@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -71,6 +72,27 @@ class ApiClient {
     bool requiresAuth = true,
   }) {
     return _send('DELETE', path, body: body, requiresAuth: requiresAuth);
+  }
+
+  /// Shorthand POST multipart — langsung terima [List<File>] dan [fileField].
+  Future<dynamic> postMultipart(
+    String path, {
+    Map<String, String> fields = const {},
+    List<File> files = const [],
+    String fileField = 'file',
+    bool requiresAuth = true,
+  }) {
+    final uploadFiles = files
+        .map((f) => MultipartUploadFile(fieldName: fileField, filePath: f.path))
+        .toList();
+
+    return _sendMultipart(
+      'POST',
+      path,
+      fields: fields,
+      files: uploadFiles,
+      requiresAuth: requiresAuth,
+    );
   }
 
   Future<dynamic> multipart(

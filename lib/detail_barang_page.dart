@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'ajukan_klaim_page.dart'; // ← TAMBAHAN IMPORT
 import 'core/network/api_client.dart';
 import 'edit_laporan_hilang_page.dart';
-import 'features/klaim/services/klaim_service.dart';
 import 'features/laporan/models/laporan_model.dart';
 import 'features/laporan/services/laporan_service.dart';
 
@@ -46,7 +46,6 @@ class DetailBarangPage extends StatefulWidget {
 
 class _DetailBarangPageState extends State<DetailBarangPage> {
   final LaporanService _laporanService = LaporanService();
-  final KlaimService _klaimService = KlaimService();
 
   bool _isLoadingDetail = false;
   bool _isDeleting = false;
@@ -182,135 +181,19 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
     }
   }
 
-  // ✅ FIXED: Hapus _isSubmittingKlaim & setState ke parent dari dalam dialog
+  // ✅ FIXED: Navigasi ke halaman penuh AjukanKlaimPage
   Future<void> _openKlaimDialog() async {
     if (!_canKlaimTemuan) return;
 
-    final alasanController = TextEditingController();
-    final kontakController = TextEditingController();
+    final success = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AjukanKlaimPage(laporan: _currentLaporan),
+      ),
+    );
 
-    bool? success;
-
-    try {
-      success = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          String? errorMessage;
-          bool isSubmitting = false;
-
-          return StatefulBuilder(
-            builder: (context, setDialogState) {
-              Future<void> submitKlaim() async {
-                final alasan = alasanController.text.trim();
-                if (alasan.isEmpty) {
-                  setDialogState(() {
-                    errorMessage = 'Alasan klaim wajib diisi.';
-                  });
-                  return;
-                }
-
-                setDialogState(() {
-                  errorMessage = null;
-                  isSubmitting = true;
-                });
-
-                try {
-                  await _klaimService.submitKlaimBarangTemuan(
-                    barangId: _currentReportId!,
-                    alasan: alasan,
-                    kontak: kontakController.text,
-                  );
-
-                  if (dialogContext.mounted) {
-                    Navigator.pop(dialogContext, true);
-                  }
-                } on ApiException catch (error) {
-                  if (dialogContext.mounted) {
-                    setDialogState(() {
-                      errorMessage = _klaimErrorMessage(error);
-                      isSubmitting = false;
-                    });
-                  }
-                } catch (_) {
-                  if (dialogContext.mounted) {
-                    setDialogState(() {
-                      errorMessage = 'Klaim gagal dikirim. Coba lagi.';
-                      isSubmitting = false;
-                    });
-                  }
-                }
-                // ✅ TIDAK ada finally setState ke parent di sini
-              }
-
-              return AlertDialog(
-                title: const Text('Klaim Barang'),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: alasanController,
-                        enabled: !isSubmitting,
-                        maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: 'Alasan klaim',
-                          hintText:
-                              'Contoh: Barang ini milik saya, cirinya ada gantungan biru.',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: kontakController,
-                        enabled: !isSubmitting,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Kontak',
-                          hintText: 'Nomor HP atau kontak lain',
-                        ),
-                      ),
-                      if (errorMessage != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          errorMessage!,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: isSubmitting
-                        ? null
-                        : () => Navigator.pop(dialogContext, false),
-                    child: const Text('Batal'),
-                  ),
-                  ElevatedButton(
-                    onPressed: isSubmitting ? null : submitKlaim,
-                    child: isSubmitting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Kirim'),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      );
-    } finally {
-      alasanController.dispose();
-      kontakController.dispose();
-    }
-
-    // ✅ Handle result SETELAH dialog tutup & controller sudah di-dispose
     if (success == true && mounted) {
-      _showSnackBar('Klaim berhasil dikirim.');
+      _showSnackBar('Klaim berhasil diajukan!');
       if (_canLoadDetail) {
         await _loadDetail();
       } else if (_detail != null) {
@@ -330,16 +213,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
       401 => 'Sesi login sudah berakhir. Silakan login ulang.',
       403 => 'Tidak punya akses untuk mengubah laporan ini.',
       404 => 'Laporan tidak ditemukan.',
-      _ => error.message,
-    };
-  }
-
-  String _klaimErrorMessage(ApiException error) {
-    return switch (error.statusCode) {
-      401 => 'Sesi login sudah berakhir. Silakan login ulang.',
-      403 => 'Tidak punya akses untuk klaim barang ini.',
-      404 => 'Barang tidak ditemukan.',
-      409 => 'Barang sudah diklaim atau klaim sudah pernah diajukan.',
       _ => error.message,
     };
   }
@@ -504,14 +377,8 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
   }
 
   Widget? _buildBottomActions() {
-    if (_canManageHilang) {
-      return _buildHilangActions();
-    }
-
-    if (_canKlaimTemuan) {
-      return _buildKlaimAction();
-    }
-
+    if (_canManageHilang) return _buildHilangActions();
+    if (_canKlaimTemuan) return _buildKlaimAction();
     return null;
   }
 
@@ -572,7 +439,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
           width: double.infinity,
           height: 52,
           child: ElevatedButton.icon(
-            // ✅ Tidak lagi pakai _isSubmittingKlaim
             onPressed: _openKlaimDialog,
             icon: const Icon(Icons.assignment_turned_in_outlined),
             label: const Text('Klaim Barang'),
@@ -727,10 +593,8 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
   String get _currentReportType {
     final detailType = _detail?.type.trim() ?? '';
     if (detailType.isNotEmpty) return detailType;
-
     final widgetType = widget.reportType?.trim() ?? '';
     if (widgetType.isNotEmpty) return widgetType.toLowerCase();
-
     return widget.status.toLowerCase();
   }
 
@@ -749,7 +613,6 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
 
   String? get _claimBlockReason {
     if (!_currentReportType.contains('temuan') || _canKlaimTemuan) return null;
-
     final reason = _detail?.claimBlockReason?.trim() ?? '';
     return reason.isEmpty ? null : reason;
   }
@@ -758,9 +621,7 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
     final normalized = (_detail?.status ?? widget.reportStatus ?? '')
         .toLowerCase()
         .trim();
-
     if (normalized.isEmpty) return true;
-
     return normalized == 'pending' ||
         normalized == 'submitted' ||
         normalized == 'rejected';
@@ -789,10 +650,8 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
 
   String get _displayCategory =>
       _valueOrFallback(_detail?.kategori, widget.category);
-
   String get _displayTime =>
       _valueOrFallback(_detail?.tanggalDisplay, widget.time);
-
   String get _displayTypeBadge =>
       _valueOrFallback(_detail?.jenisBadge, widget.status).toUpperCase();
 
@@ -803,18 +662,15 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
 
   String get _displayDescription =>
       _valueOrFallback(_detail?.deskripsi, widget.description);
-
   String get _displayImageUrl =>
       _valueOrFallback(_detail?.imageUrl, widget.imageUrl);
 
   String get _displayLocation {
     if (_detail == null) return widget.location;
-
     final parts = [
       _detail!.wilayah,
       _detail!.lokasi,
     ].where((v) => v.trim().isNotEmpty && v.trim() != '-').toList();
-
     if (parts.isEmpty) return widget.location;
     return parts.join(' - ');
   }
@@ -848,9 +704,7 @@ class _DetailBarangPageState extends State<DetailBarangPage> {
           if (loadingProgress == null) return child;
           return _buildHeroPlaceholder(isLoading: true);
         },
-        errorBuilder: (context, error, stackTrace) {
-          return _buildHeroPlaceholder();
-        },
+        errorBuilder: (context, error, stackTrace) => _buildHeroPlaceholder(),
       ),
     );
   }
