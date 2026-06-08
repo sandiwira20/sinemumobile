@@ -178,7 +178,8 @@ class LaporanModel {
   // ─── HELPER: Normalisasi URL gambar ───────────────────────────
   static String _normalizeImageUrl(String url) {
     if (url.isEmpty) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('http://')) return url.replaceFirst('http://', 'https://');
+    if (url.startsWith('https://')) return url;
     if (url.startsWith('/')) return '$_apiBase$url';
     return '$_apiBase/$url';
   }

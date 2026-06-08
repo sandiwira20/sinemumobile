@@ -617,6 +617,7 @@ class _BerandaPageState extends State<BerandaPage> {
     required IconData placeholderIcon,
   }) {
     final normalizedImageUrl = imageUrl.trim();
+    debugPrint('=== IMAGE URL: "$normalizedImageUrl"');
     if (normalizedImageUrl.isEmpty) {
       return _buildImagePlaceholder(imageGradient, placeholderIcon);
     }
