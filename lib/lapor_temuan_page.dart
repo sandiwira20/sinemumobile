@@ -1,4 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import 'core/network/api_client.dart';
+import 'features/laporan/services/laporan_service.dart';
+import 'features/support_data/models/kategori_model.dart';
+import 'features/support_data/models/wilayah_model.dart';
+import 'features/support_data/services/support_data_service.dart';
 
 class LaporTemuanPage extends StatefulWidget {
   const LaporTemuanPage({super.key});
@@ -8,704 +17,837 @@ class LaporTemuanPage extends StatefulWidget {
 }
 
 class _LaporTemuanPageState extends State<LaporTemuanPage> {
-  final _formKey = GlobalKey<FormState>();
-
-  // Variabel untuk Dropdown
-
-  String? _selectedWilayah;
-
-  String? _selectedKategori;
-
-  // CONTROLLER UNTUK TANGGAL DAN JAM BIAR BISA NAMPILIN HASIL PILIHAN
-
-  final TextEditingController _tanggalController = TextEditingController();
-
-  final TextEditingController _jamController = TextEditingController();
-
-  // Data Dropdown
-
-  final List<String> _listWilayah = [
-    'Kecamatan Anjatan',
-
-    'Kecamatan Arahan',
-
-    'Kecamatan Balongan',
-
-    'Kecamatan Bangodua',
-
-    'Kecamatan Bongas',
-
-    'Kecamatan Cantigi',
-
-    'Kecamatan Cikedung',
-
-    'Kecamatan Gabuswetan',
-
-    'Kecamatan Gantar',
-
-    'Kecamatan Haurgeulis',
-
-    'Kecamatan Indramayu',
-
-    'Kecamatan Jatibarang',
-
-    'Kecamatan Juntinyuat',
-
-    'Kecamatan Kandanghaur',
-
-    'Kecamatan Karangampel',
-
-    'Kecamatan Kedokan Bunder',
-
-    'Kecamatan Kertasemaya',
-
-    'Kecamatan Krangkeng',
-
-    'Kecamatan Kroya',
-
-    'Kecamatan Lelea',
-
-    'Kecamatan Lohbener',
-
-    'Kecamatan Losarang',
-
-    'Kecamatan Pasekan',
-
-    'Kecamatan Patrol',
-
-    'Kecamatan Sindang',
-
-    'Kecamatan Sliyeg',
-
-    'Kecamatan Sukagumiwang',
-
-    'Kecamatan Sukra',
-
-    'Kecamatan Terisi',
-
-    'Kecamatan Tukdana',
-
-    'Kecamatan Widasari',
-  ];
-
-  final List<String> _listKategori = [
-    'Aksesoris',
-
-    'Buku atau Alat Tulis',
-
-    'Dokumen',
-
-    'Dompet',
-
-    'Elektronik',
-
-    'Kartu Identitas',
-
-    'Kendaraan',
-
-    'Kunci',
-
-    'Mainan',
-
-    'Pakaian',
-
-    'Perhiasan',
-
-    'Perlengkapan Pribadi',
-
-    'Uang',
-
-    'Lainnya',
-  ];
-
-  // --- FUNGSI MUNCULIN KALENDER ---
-
-  Future<void> _pilihTanggal(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-
-      initialDate: DateTime.now(), // Mulai dari hari ini
-
-      firstDate: DateTime(2000), // Tahun paling lama
-
-      lastDate: DateTime(2100), // Tahun paling baru
-
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1E88E5), // Warna header kalender biru SiNemu
-            ),
-          ),
-
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        // Format jadi dd/mm/yyyy
-
-        String hari = picked.day.toString().padLeft(2, '0');
-
-        String bulan = picked.month.toString().padLeft(2, '0');
-
-        String tahun = picked.year.toString();
-
-        _tanggalController.text = "$hari/$bulan/$tahun";
-      });
-    }
+  // Web: JPG, JPEG, PNG, WEBP — maks 3MB
+  static const int _maxFotoBytes = 3 * 1024 * 1024;
+  static const Set<String> _allowedFotoExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+  };
+
+  final SupportDataService _supportDataService = SupportDataService();
+  final LaporanService _laporanService = LaporanService();
+  final ImagePicker _imagePicker = ImagePicker();
+
+  // Controllers — identik dengan web
+  final TextEditingController _namaBarangController = TextEditingController();
+  final TextEditingController _warnaDominanController = TextEditingController();
+  final TextEditingController _merekController = TextEditingController();
+  final TextEditingController _nomorSeriController = TextEditingController();
+  final TextEditingController _lokasiController =
+      TextEditingController(); // Lokasi Hilang (singkat)
+  final TextEditingController _detailLokasiController =
+      TextEditingController(); // Detail Lokasi Hilang
+  final TextEditingController _deskripsiController =
+      TextEditingController(); // Deskripsi Barang & Kronologi
+  final TextEditingController _ciriUnikController =
+      TextEditingController(); // Ciri Unik Barang
+  final TextEditingController _noWaController =
+      TextEditingController(); // No. WA — WAJIB
+  final TextEditingController _buktiKepemilikanController =
+      TextEditingController(); // Bukti Kepemilikan
+
+  bool _isSupportDataLoading = true;
+  bool _isSubmitting = false;
+  String? _supportDataError;
+  List<KategoriModel> _kategoris = [];
+  List<WilayahModel> _wilayahs = [];
+  String? _selectedKategoriId;
+  String? _selectedWilayahId;
+  DateTime? _selectedTanggal = DateTime.now();
+  TimeOfDay? _selectedJam;
+  XFile? _selectedFoto;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSupportData();
   }
-
-  // --- FUNGSI MUNCULIN JAM ---
-
-  Future<void> _pilihJam(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-
-      initialTime: TimeOfDay.now(),
-
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1E88E5), // Warna jam biru SiNemu
-            ),
-          ),
-
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        // Format jadi HH:MM
-
-        String jam = picked.hour.toString().padLeft(2, '0');
-
-        String menit = picked.minute.toString().padLeft(2, '0');
-
-        _jamController.text = "$jam:$menit";
-      });
-    }
-  }
-
-  // Bersihin memori pas halaman ditutup
 
   @override
   void dispose() {
-    _tanggalController.dispose();
-
-    _jamController.dispose();
-
+    _namaBarangController.dispose();
+    _warnaDominanController.dispose();
+    _merekController.dispose();
+    _nomorSeriController.dispose();
+    _lokasiController.dispose();
+    _detailLokasiController.dispose();
+    _deskripsiController.dispose();
+    _ciriUnikController.dispose();
+    _noWaController.dispose();
+    _buktiKepemilikanController.dispose();
     super.dispose();
   }
+
+  // ─── Data Loading ───────────────────────────────────────────────────────────
+
+  Future<void> _loadSupportData() async {
+    setState(() {
+      _isSupportDataLoading = true;
+      _supportDataError = null;
+    });
+    try {
+      final supportData = await _supportDataService.getSupportData();
+      if (!mounted) return;
+      setState(() {
+        _kategoris = supportData.kategoris;
+        _wilayahs = supportData.wilayahs;
+        _selectedKategoriId = null;
+        _selectedWilayahId = null;
+        _isSupportDataLoading = false;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _supportDataError = error.statusCode == 401
+            ? 'Sesi login sudah berakhir. Silakan login ulang.'
+            : error.message;
+        _isSupportDataLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _supportDataError = 'Gagal memuat kategori dan wilayah.';
+        _isSupportDataLoading = false;
+      });
+    }
+  }
+
+  // ─── Submit ──────────────────────────────────────────────────────────────────
+
+  Future<void> _submitLaporan() async {
+    final validationMessage = _validateForm();
+    if (validationMessage != null) {
+      _showSnackBar(validationMessage, isError: true);
+      return;
+    }
+
+    final request = LaporanRequest(
+      jenis: JenisLaporan.temuan,
+      namaBarang: _namaBarangController.text.trim(),
+      kategoriId: _selectedKategoriId!,
+      wilayahId: _selectedWilayahId!,
+      lokasi: _lokasiController.text.trim(),
+      deskripsi: _deskripsiController.text.trim(),
+      tanggal: _selectedTanggal!,
+      warnaDominan: _nullIfEmpty(_warnaDominanController.text),
+      merek: _nullIfEmpty(_merekController.text),
+      nomorSeri: _nullIfEmpty(_nomorSeriController.text),
+      perkiraanJam: _selectedJam,
+      detailLokasi: _nullIfEmpty(_detailLokasiController.text),
+      ciriUnik: _nullIfEmpty(_ciriUnikController.text),
+      noWa: _noWaController.text.trim(),
+      buktiKepemilikan: _nullIfEmpty(_buktiKepemilikanController.text),
+    );
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _laporanService.submitLaporan(
+        request,
+        fotoPath: _selectedFoto?.path,
+      );
+      if (!mounted) return;
+      _clearForm();
+      _showSnackBar('Laporan berhasil dikirim!');
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      _showSnackBar(_apiErrorMessage(error), isError: true);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar(
+        'Laporan gagal dikirim. Coba lagi beberapa saat.',
+        isError: true,
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  // ─── Validation ──────────────────────────────────────────────────────────────
+
+  String? _validateForm() {
+    if (_namaBarangController.text.trim().isEmpty)
+      return 'Nama barang wajib diisi.';
+    if (_selectedWilayahId == null) return 'Wilayah kejadian wajib dipilih.';
+    if (_lokasiController.text.trim().isEmpty)
+      return 'Lokasi ditemukan wajib diisi.';
+    if (_selectedTanggal == null) return 'Tanggal ditemukan wajib dipilih.';
+    if (_deskripsiController.text.trim().isEmpty)
+      return 'Deskripsi barang temuan wajib diisi.';
+    if (_noWaController.text.trim().isEmpty)
+      return 'No. WA yang bisa dihubungi wajib diisi.';
+    return null;
+  }
+
+  void _clearForm() {
+    for (final c in [
+      _namaBarangController,
+      _warnaDominanController,
+      _merekController,
+      _nomorSeriController,
+      _lokasiController,
+      _detailLokasiController,
+      _deskripsiController,
+      _ciriUnikController,
+      _noWaController,
+      _buktiKepemilikanController,
+    ]) {
+      c.clear();
+    }
+    setState(() {
+      _selectedKategoriId = null;
+      _selectedWilayahId = null;
+      _selectedTanggal = DateTime.now();
+      _selectedJam = null;
+      _selectedFoto = null;
+    });
+  }
+
+  // ─── Pickers ────────────────────────────────────────────────────────────────
+
+  Future<void> _pickTanggal() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedTanggal ?? now,
+      firstDate: DateTime(2000),
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (picked != null) setState(() => _selectedTanggal = picked);
+  }
+
+  Future<void> _pickJam() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedJam ?? TimeOfDay.now(),
+    );
+    if (picked != null) setState(() => _selectedJam = picked);
+  }
+
+  Future<void> _pickFoto() async {
+    try {
+      final pickedFoto = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (pickedFoto == null) return;
+      final msg = await _validateFoto(pickedFoto);
+      if (msg != null) {
+        _showSnackBar(msg, isError: true);
+        return;
+      }
+      setState(() => _selectedFoto = pickedFoto);
+    } catch (_) {
+      _showSnackBar('Gagal memilih foto dari galeri.', isError: true);
+    }
+  }
+
+  Future<String?> _validateFoto(XFile foto) async {
+    final ext = _fotoExtension(foto);
+    if (!_allowedFotoExtensions.contains(ext)) {
+      return 'Format foto harus JPG, JPEG, PNG, atau WEBP.';
+    }
+    final size = await foto.length();
+    if (size > _maxFotoBytes) return 'Ukuran foto maksimal 3 MB.';
+    return null;
+  }
+
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+
+  String? _nullIfEmpty(String value) =>
+      value.trim().isEmpty ? null : value.trim();
+
+  String _fotoExtension(XFile foto) {
+    final src = foto.name.isNotEmpty ? foto.name : foto.path;
+    final parts = src.split('.');
+    return parts.length < 2 ? '' : parts.last.toLowerCase();
+  }
+
+  String _fotoName(XFile foto) {
+    if (foto.name.isNotEmpty) return foto.name;
+    return foto.path.split(Platform.pathSeparator).last;
+  }
+
+  String _formatDate(DateTime v) {
+    return '${v.year}-${v.month.toString().padLeft(2, '0')}-${v.day.toString().padLeft(2, '0')}';
+  }
+
+  String _formatTime(TimeOfDay v) {
+    return '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _apiErrorMessage(ApiException error) => switch (error.statusCode) {
+    401 => 'Sesi login sudah berakhir. Silakan login ulang.',
+    413 => 'Ukuran foto terlalu besar.',
+    _ => error.message,
+  };
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  // ─── BUILD ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
         title: const Text(
           'Lapor Barang Temuan',
-
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-
-        backgroundColor: Colors.white,
-
-        elevation: 0,
-
-        iconTheme: const IconThemeData(color: Colors.black),
+        centerTitle: true,
       ),
-
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-
-          child: Form(
-            key: _formKey,
-
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(15),
-
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-
-                  child: const Text(
-                    "Laporkan barang temuan agar pemilik dapat dihubungi dan proses pengambilan berjalan tertib.",
-
-                    style: TextStyle(color: Colors.blue, fontSize: 13),
-                  ),
-                ),
-
-                const SizedBox(height: 25),
-
-                _buildInputLabel("No. WA Penemu", isWajib: true),
-
-                _buildTextField("Contoh: 081234567890", requiredField: true),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Wilayah Ditemukan", isWajib: true),
-
-                _buildDropdown(
-                  hint: "Pilih kecamatan",
-
-                  items: _listWilayah,
-
-                  selectedValue: _selectedWilayah,
-
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedWilayah = value;
-                    });
-                  },
-                ),
-
-                const Text(
-                  "Barang temuan akan diteruskan ke pengelola barang wilayah ini.",
-
-                  style: TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Kategori"),
-
-                _buildDropdown(
-                  hint: "Pilih kategori",
-
-                  items: _listKategori,
-
-                  selectedValue: _selectedKategori,
-
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedKategori = value;
-                    });
-                  },
-                ),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Warna Dominan"),
-
-                _buildTextField("Contoh: Hitam"),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Merek / Brand"),
-
-                _buildTextField("Contoh: Samsung, Casio"),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Nomor Seri / Kode Unik"),
-
-                _buildTextField("Contoh: IMEI atau nomor seri"),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Lokasi Ditemukan", isWajib: true),
-
-                _buildTextField("Contoh: Lobi Gedung A", requiredField: true),
-
-                const SizedBox(height: 15),
-
-                // --- TANGGAL YANG BISA DIKLIK MUNCUL KALENDER ---
-                _buildInputLabel("Tanggal Ditemukan", isWajib: true),
-
-                _buildClickableField(
-                  hint: "dd/mm/tttt",
-
-                  icon: Icons.calendar_today,
-
-                  controller: _tanggalController,
-
-                  onTap: () => _pilihTanggal(context),
-                ),
-
-                const SizedBox(height: 15),
-
-                // --- JAM YANG BISA DIKLIK MUNCUL JAM DIGITAL ---
-                _buildInputLabel("Perkiraan Jam Ditemukan"),
-
-                _buildClickableField(
-                  hint: "--:--",
-
-                  icon: Icons.access_time,
-
-                  controller: _jamController,
-
-                  onTap: () => _pilihJam(context),
-                ),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Detail Lokasi Ditemukan"),
-
-                _buildTextArea(
-                  "Contoh: Ditemukan di dekat pintu barat, sebelah mesin absensi.",
-                ),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Deskripsi", isWajib: true),
-
-                _buildTextArea(
-                  "Jelaskan ciri barang dan kondisi saat ditemukan.",
-                  requiredField: true,
-                ),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Ciri Unik Barang"),
-
-                _buildTextArea(
-                  "Contoh: Ada stiker, goresan tertentu, atau aksesori khusus.",
-                ),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Nama Penemu"),
-
-                _buildTextField("Sandi Wira"),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("No. WA Penemu", isWajib: true),
-
-                _buildTextField("Contoh: 081234567890"),
-
-                const SizedBox(height: 15),
-
-                _buildInputLabel("Foto Barang (Opsional)"),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-
-                    vertical: 12,
-                  ),
-
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-
-                    borderRadius: BorderRadius.circular(10),
-
-                    color: Colors.white,
-                  ),
-
-                  child: Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {},
-
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-
-                          foregroundColor: Colors.black,
-
-                          elevation: 0,
-                        ),
-
-                        child: const Text("Pilih File"),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      const Text(
-                        "Tidak ada file yang dipilih",
-
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                const Text(
-                  "Format: JPG, JPEG, PNG, WEBP. Maksimal 3MB.",
-
-                  style: TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-
-                const SizedBox(height: 40),
-
-                SizedBox(
-                  width: double.infinity,
-
-                  height: 50,
-
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (!_formKey.currentState!.validate()) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            backgroundColor: Colors.red,
-                            content: Text(
-                              'Mohon lengkapi data yang wajib diisi.',
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Laporan berhasil dikirim'),
-                        ),
-                      );
-                    },
-
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5),
-
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-
-                    child: const Text(
-                      "Kirim Laporan",
-
-                      style: TextStyle(
-                        color: Colors.white,
-
-                        fontSize: 16,
-
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // --- WIDGET PEMBANTU ---
-
-  Widget _buildInputLabel(String text, {bool isWajib = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-
-      child: RichText(
-        text: TextSpan(
-          text: text,
-
-          style: const TextStyle(
-            color: Colors.black87,
-
-            fontWeight: FontWeight.bold,
-
-            fontSize: 14,
-          ),
-
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (isWajib)
-              const TextSpan(
-                text: " *",
-
-                style: TextStyle(color: Colors.red),
+            // Info hint
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F4FD),
+                borderRadius: BorderRadius.circular(10),
               ),
+              child: Text(
+                'Laporkan barang temuan agar pemilik dapat dihubungi dan proses pengambilan berjalan tertib.',
+                style: TextStyle(color: Colors.blue.shade700, fontSize: 13),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // ── 1. Nama Barang ───────────────────────────────────────────────
+            _buildLabel('Nama Barang', required: true),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Dompet Coklat',
+              controller: _namaBarangController,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 2. Wilayah Kejadian ──────────────────────────────────────────
+            _buildLabel('Wilayah Ditemukan', required: true),
+            const SizedBox(height: 8),
+            _buildSupportDataWilayah(),
+            const SizedBox(height: 6),
+            Text(
+              'Laporan akan masuk ke pengelola barang wilayah yang dipilih.',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            ),
+            const SizedBox(height: 20),
+
+            // ── 3. Kategori Barang ───────────────────────────────────────────
+            _buildLabel('Kategori Barang'),
+            const SizedBox(height: 8),
+            _buildSupportDataKategori(),
+            const SizedBox(height: 20),
+
+            // ── 4. Warna Dominan ─────────────────────────────────────────────
+            _buildLabel('Warna Dominan'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Hitam',
+              controller: _warnaDominanController,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 5. Merek / Brand ─────────────────────────────────────────────
+            _buildLabel('Merek / Brand'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Samsung, Eiger, Casio',
+              controller: _merekController,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 6. Nomor Seri / Kode Unik ────────────────────────────────────
+            _buildLabel('Nomor Seri / Kode Unik'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: IMEI, nomor seri, kode produksi',
+              controller: _nomorSeriController,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 7. Lokasi Ditemukan ─────────────────────────────────────────────
+            _buildLabel('Lokasi Ditemukan', required: true),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Area parkir timur',
+              controller: _lokasiController,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 8. Tanggal Ditemukan ────────────────────────────────────────────
+            _buildLabel('Tanggal Ditemukan', required: true),
+            const SizedBox(height: 8),
+            _buildDateField(),
+            const SizedBox(height: 20),
+
+            // ── 9. Perkiraan Jam Ditemukan ──────────────────────────────────────
+            _buildLabel('Perkiraan Jam Ditemukan'),
+            const SizedBox(height: 8),
+            _buildTimeField(),
+            const SizedBox(height: 20),
+
+            // ── 10. Detail Lokasi Ditemukan ─────────────────────────────────────
+            _buildLabel('Detail Lokasi Ditemukan'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Dekat ATM sisi kiri, sekitar 10 meter dari pintu utama.',
+              controller: _detailLokasiController,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 11. Deskripsi Barang dan Kronologi Singkat ───────────────────
+            _buildLabel(
+              'Deskripsi',
+              required: true,
+            ),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Jelaskan barang yang ditemukan.',
+              controller: _deskripsiController,
+              maxLines: 4,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Data yang lebih rinci akan memudahkan proses validasi.',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            ),
+            const SizedBox(height: 20),
+
+            // ── 12. Ciri Unik Barang ─────────────────────────────────────────
+            _buildLabel('Ciri Unik Barang'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Ada stiker kampus di sisi belakang, resleting kiri agak seret.',
+              controller: _ciriUnikController,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+
+            _buildLabel('Nama Penemu'),
+const SizedBox(height: 8),
+
+_buildTextField(
+  'Nama penemu',
+),
+
+const SizedBox(height: 20),
+
+            // ── 13. No. WA yang Bisa Dihubungi ──────────────────────────────
+            _buildLabel('No. WA penemu', required: true),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: 081234567890',
+              controller: _noWaController,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 14. Bukti Kepemilikan ────────────────────────────────────────
+            _buildLabel('Bukti Kepemilikan (Opsional)'),
+            const SizedBox(height: 8),
+            _buildTextField(
+              'Contoh: Ada foto saat barang dipakai, nomor seri, atau detail isi barang yang hanya pemilik tahu.',
+              controller: _buktiKepemilikanController,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+
+            // ── 15. Foto Barang ──────────────────────────────────────────────
+            _buildLabel('Foto Barang (Opsional)'),
+            const SizedBox(height: 8),
+            _buildFotoPicker(),
+            const SizedBox(height: 40),
+
+            // ── Tombol Kirim ─────────────────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _submitLaporan,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A90E2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'KIRIM LAPORAN',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
+  // ─── Section Widgets ─────────────────────────────────────────────────────────
+
+  /// Wilayah saja (terpisah agar bisa ditempatkan sendiri)
+  Widget _buildSupportDataWilayah() {
+    if (_isSupportDataLoading) return _buildSupportDataLoading();
+    if (_supportDataError != null) return _buildSupportDataError();
+    return _buildWilayahDropdown();
+  }
+
+  /// Kategori saja
+  Widget _buildSupportDataKategori() {
+    if (_isSupportDataLoading) return _buildSupportDataLoading();
+    if (_supportDataError != null) return const SizedBox.shrink();
+    return _buildKategoriDropdown();
+  }
+
+  // ─── Field Widgets ───────────────────────────────────────────────────────────
+
+  Widget _buildLabel(String text, {bool required = false}) {
+    return Row(
+      children: [
+        Flexible(
+          child: Text(
+            text,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+        ),
+        if (required)
+          const Text(
+            ' *',
+            style: TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildTextField(
     String hint, {
-    IconData? icon,
-    bool requiredField = false,
+    TextEditingController? controller,
+    int maxLines = 1,
+    TextInputType? keyboardType,
   }) {
-    return TextFormField(
-      validator: (value) {
-        if (requiredField && (value == null || value.trim().isEmpty)) {
-          return 'Field wajib diisi';
-        }
-        return null;
-      },
-      decoration: InputDecoration(
-        hintText: hint,
-
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-
-        filled: true,
-
-        fillColor: Colors.white,
-
-        suffixIcon: icon != null ? Icon(icon, color: Colors.black54) : null,
-
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 15,
-          vertical: 15,
-        ),
-
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey.shade300),
-
-          borderRadius: BorderRadius.circular(10),
-        ),
-
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-    );
-  }
-
-  // WIDGET KHUSUS BIAR FIELD TANGGAL & JAM BISA DIKLIK TAPI GAK BISA DIKETIK MANUAL
-
-  Widget _buildClickableField({
-    required String hint,
-
-    required IconData icon,
-
-    required TextEditingController controller,
-
-    required VoidCallback onTap,
-  }) {
-    return TextFormField(
+    return TextField(
       controller: controller,
-
-      readOnly: true, // Kunci keyboard biar gak muncul
-
-      onTap: onTap, // Jalankan kalender/jam saat diklik
-
+      enabled: !_isSubmitting,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         hintText: hint,
-
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-
         filled: true,
-
         fillColor: Colors.white,
-
-        suffixIcon: Icon(icon, color: Colors.black54),
-
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 15,
-
-          vertical: 15,
-        ),
-
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey.shade300),
-
-          borderRadius: BorderRadius.circular(10),
-        ),
-
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-
-          borderRadius: BorderRadius.circular(10),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
       ),
     );
   }
 
-  Widget _buildTextArea(String hint, {bool requiredField = false}) {
-    return TextFormField(
-      maxLines: 4,
-      validator: (value) {
-        if (requiredField && (value == null || value.trim().isEmpty)) {
-          return 'Field wajib diisi';
-        }
-        return null;
-      },
-      decoration: InputDecoration(
-        hintText: hint,
+  Widget _buildKategoriDropdown() {
+    if (_kategoris.isEmpty)
+      return _buildEmptySupportDataField('Belum ada kategori dari server');
+    return DropdownButtonFormField<String>(
+      key: ValueKey('kategori-${_selectedKategoriId ?? 'empty'}'),
+      initialValue: _selectedKategoriId,
+      decoration: _fieldDecoration(),
+      hint: Text(
+        'Pilih kategori',
+        style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+      ),
+      items: _kategoris
+          .map((k) => DropdownMenuItem(value: k.id, child: Text(k.nama)))
+          .toList(),
+      onChanged: _isSubmitting
+          ? null
+          : (v) => setState(() => _selectedKategoriId = v),
+    );
+  }
 
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+  Widget _buildWilayahDropdown() {
+    if (_wilayahs.isEmpty)
+      return _buildEmptySupportDataField('Belum ada wilayah dari server');
+    return DropdownButtonFormField<String>(
+      key: ValueKey('wilayah-${_selectedWilayahId ?? 'empty'}'),
+      initialValue: _selectedWilayahId,
+      decoration: _fieldDecoration(),
+      hint: Text(
+        'Pilih kecamatan',
+        style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+      ),
+      items: _wilayahs
+          .map((w) => DropdownMenuItem(value: w.id, child: Text(w.nama)))
+          .toList(),
+      onChanged: _isSubmitting
+          ? null
+          : (v) => setState(() => _selectedWilayahId = v),
+    );
+  }
 
-        filled: true,
-
-        fillColor: Colors.white,
-
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 15,
-
-          vertical: 15,
+  Widget _buildDateField() {
+    return InkWell(
+      onTap: _isSubmitting ? null : _pickTanggal,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
         ),
-
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey.shade300),
-
-          borderRadius: BorderRadius.circular(10),
-        ),
-
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-
-          borderRadius: BorderRadius.circular(10),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 18,
+              color: Colors.grey.shade600,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _selectedTanggal == null
+                  ? 'dd/mm/tttt'
+                  : _formatDate(_selectedTanggal!),
+              style: TextStyle(
+                color: _selectedTanggal == null
+                    ? Colors.grey.shade400
+                    : Colors.black,
+                fontSize: 14,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildDropdown({
-    required String hint,
+  Widget _buildTimeField() {
+    return InkWell(
+      onTap: _isSubmitting ? null : _pickJam,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.access_time_outlined,
+              size: 18,
+              color: Colors.grey.shade600,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _selectedJam == null ? '-- : --' : _formatTime(_selectedJam!),
+              style: TextStyle(
+                color: _selectedJam == null
+                    ? Colors.grey.shade400
+                    : Colors.black,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    required List<String> items,
+  Widget _buildFotoPicker() {
+    return InkWell(
+      onTap: _isSubmitting ? null : _pickFoto,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        height: 150,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: _selectedFoto == null
+            ? _buildFotoPlaceholder()
+            : _buildFotoPreview(_selectedFoto!),
+      ),
+    );
+  }
 
-    required String? selectedValue,
+  Widget _buildFotoPlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.add_a_photo_outlined, size: 40, color: Colors.grey.shade400),
+        const SizedBox(height: 10),
+        Text(
+          'Ketuk untuk tambah foto',
+          style: TextStyle(color: Colors.grey.shade500),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'JPG, JPEG, PNG, WEBP maks. 3 MB',
+          style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+        ),
+      ],
+    );
+  }
 
-    required Function(String?) onChanged,
-  }) {
+  Widget _buildFotoPreview(XFile foto) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(File(foto.path), fit: BoxFit.cover),
+          ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: GestureDetector(
+            onTap: _isSubmitting
+                ? null
+                : () => setState(() => _selectedFoto = null),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.close, color: Colors.white, size: 18),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.55),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(12),
+              ),
+            ),
+            child: Text(
+              _fotoName(foto),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSupportDataLoading() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-
-        border: Border.all(color: Colors.grey.shade300),
-
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
-
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-
-          hint: Text(
-            hint,
-
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
+          const SizedBox(width: 12),
+          Text(
+            'Memuat data...',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
 
-          value: selectedValue,
+  Widget _buildSupportDataError() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _supportDataError!,
+            style: const TextStyle(color: Colors.red, fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _loadSupportData,
+            child: const Text('Coba lagi'),
+          ),
+        ],
+      ),
+    );
+  }
 
-          items: items.map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
+  Widget _buildEmptySupportDataField(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+      ),
+    );
+  }
 
-              child: Text(value, style: const TextStyle(fontSize: 14)),
-            );
-          }).toList(),
-
-          onChanged: onChanged,
-        ),
+  InputDecoration _fieldDecoration() {
+    return InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
       ),
     );
   }
