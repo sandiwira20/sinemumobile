@@ -251,9 +251,9 @@ class _LaporTemuanPageState extends State<LaporTemuanPage> {
 
                 const SizedBox(height: 25),
 
-                _buildInputLabel("Nama Barang", isWajib: true),
+                _buildInputLabel("No. WA Penemu", isWajib: true),
 
-                _buildTextField("Contoh: HP Android warna hitam"),
+                _buildTextField("Contoh: 081234567890", requiredField: true),
 
                 const SizedBox(height: 15),
 
@@ -319,7 +319,7 @@ class _LaporTemuanPageState extends State<LaporTemuanPage> {
 
                 _buildInputLabel("Lokasi Ditemukan", isWajib: true),
 
-                _buildTextField("Contoh: Lobi Gedung A"),
+                _buildTextField("Contoh: Lobi Gedung A", requiredField: true),
 
                 const SizedBox(height: 15),
 
@@ -365,6 +365,7 @@ class _LaporTemuanPageState extends State<LaporTemuanPage> {
 
                 _buildTextArea(
                   "Jelaskan ciri barang dan kondisi saat ditemukan.",
+                  requiredField: true,
                 ),
 
                 const SizedBox(height: 15),
@@ -449,7 +450,25 @@ class _LaporTemuanPageState extends State<LaporTemuanPage> {
                   height: 50,
 
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      if (!_formKey.currentState!.validate()) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            backgroundColor: Colors.red,
+                            content: Text(
+                              'Mohon lengkapi data yang wajib diisi.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Laporan berhasil dikirim'),
+                        ),
+                      );
+                    },
 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E88E5),
@@ -513,8 +532,18 @@ class _LaporTemuanPageState extends State<LaporTemuanPage> {
     );
   }
 
-  Widget _buildTextField(String hint, {IconData? icon}) {
+  Widget _buildTextField(
+    String hint, {
+    IconData? icon,
+    bool requiredField = false,
+  }) {
     return TextFormField(
+      validator: (value) {
+        if (requiredField && (value == null || value.trim().isEmpty)) {
+          return 'Field wajib diisi';
+        }
+        return null;
+      },
       decoration: InputDecoration(
         hintText: hint,
 
@@ -528,7 +557,6 @@ class _LaporTemuanPageState extends State<LaporTemuanPage> {
 
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 15,
-
           vertical: 15,
         ),
 
@@ -597,10 +625,15 @@ class _LaporTemuanPageState extends State<LaporTemuanPage> {
     );
   }
 
-  Widget _buildTextArea(String hint) {
+  Widget _buildTextArea(String hint, {bool requiredField = false}) {
     return TextFormField(
       maxLines: 4,
-
+      validator: (value) {
+        if (requiredField && (value == null || value.trim().isEmpty)) {
+          return 'Field wajib diisi';
+        }
+        return null;
+      },
       decoration: InputDecoration(
         hintText: hint,
 

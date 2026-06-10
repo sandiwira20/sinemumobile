@@ -156,8 +156,11 @@ class LaporanService {
       _getLaporanFrom('/laporan/publik');
 
   Future<List<LaporanModel>> searchLaporan(String keyword) async {
-    final encodedKeyword = Uri.encodeComponent(keyword.trim());
-    return _getLaporanFrom('/laporan/publik?search=$encodedKeyword');
+    final semua = await getLaporanPublik();
+
+    return semua.where((item) {
+      return item.namaBarang.toLowerCase().contains(keyword.toLowerCase());
+    }).toList();
   }
 
   Future<List<LaporanModel>> _getLaporanFrom(String path) async {
