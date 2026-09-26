@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:dio/dio.dart';
+import 'features/support_data/services/support_data_service.dart';
 
 class MapsPage extends StatefulWidget {
   const MapsPage({super.key});
@@ -13,6 +14,8 @@ class MapsPage extends StatefulWidget {
 
 class _MapsPageState extends State<MapsPage> {
   final MapController _mapController = MapController();
+  final SupportDataService _supportDataService = SupportDataService();
+
   String kecamatanDipilih = 'Semua';
   LatLng? _lokasiSaya;
   List<LatLng> _rutePoints = [];
@@ -24,57 +27,35 @@ class _MapsPageState extends State<MapsPage> {
   bool _isLoadingRute = false;
 
   // =====================
-  // DATA 31 KECAMATAN INDRAMAYU (Koordinat Akurat)
+  // DATA WILAYAH DARI API
   // =====================
-  final List<Map<String, dynamic>> kecamatan = [
-    {"nama": "Anjatan", "lat": -6.3475, "lng": 107.9542},
-    {"nama": "Arahan", "lat": -6.2944, "lng": 108.2045},
-    {"nama": "Balongan", "lat": -6.3601, "lng": 108.3687},
-    {"nama": "Bangodua", "lat": -6.5167, "lng": 108.2500},
-    {"nama": "Bongas", "lat": -6.3881, "lng": 107.9904},
-    {"nama": "Cantigi", "lat": -6.2625, "lng": 108.2433},
-    {"nama": "Cikedung", "lat": -6.5683, "lng": 108.1306},
-    {"nama": "Gabuswetan", "lat": -6.4385, "lng": 108.0645},
-    {"nama": "Gantar", "lat": -6.5592, "lng": 107.9427},
-    {"nama": "Haurgeulis", "lat": -6.4578, "lng": 107.9442},
-    {"nama": "Indramayu", "lat": -6.3264, "lng": 108.3229},
-    {"nama": "Jatibarang", "lat": -6.4716, "lng": 108.3071},
-    {"nama": "Juntinyuat", "lat": -6.4024, "lng": 108.4173},
-    {"nama": "Kandanghaur", "lat": -6.3236, "lng": 108.1064},
-    {"nama": "Karangampel", "lat": -6.4526, "lng": 108.4519},
-    {"nama": "Kedokan Bunder", "lat": -6.4862, "lng": 108.4061},
-    {"nama": "Kertasemaya", "lat": -6.5297, "lng": 108.3586},
-    {"nama": "Krangkeng", "lat": -6.5050, "lng": 108.4550},
-    {"nama": "Kroya", "lat": -6.5074, "lng": 108.0538},
-    {"nama": "Lelea", "lat": -6.4950, "lng": 108.1965},
-    {"nama": "Lohbener", "lat": -6.3983, "lng": 108.2581},
-    {"nama": "Losarang", "lat": -6.3847, "lng": 108.1697},
-    {"nama": "Pasekan", "lat": -6.2570, "lng": 108.2721},
-    {"nama": "Patrol", "lat": -6.2942, "lng": 107.9744},
-    {"nama": "Sindang", "lat": -6.3298, "lng": 108.2933},
-    {"nama": "Sliyeg", "lat": -6.4521, "lng": 108.3541},
-    {"nama": "Sukagumiwang", "lat": -6.5595, "lng": 108.3683},
-    {"nama": "Sukra", "lat": -6.2731, "lng": 107.9255},
-    {"nama": "Terisi", "lat": -6.5414, "lng": 108.1972},
-    {"nama": "Tukdana", "lat": -6.5701, "lng": 108.2612},
-    {"nama": "Widasari", "lat": -6.4533, "lng": 108.2731},
-  ];
+  List<Map<String, dynamic>> kecamatan = [];
+
+  bool _isLoadingWilayah = true;
+  String? _wilayahError;
 
   List<Map<String, dynamic>> get kecamatanFiltered {
-    if (kecamatanDipilih == 'Semua') return kecamatan;
+    if (kecamatanDipilih == 'Semua') {
+      return kecamatan;
+    }
+
     return kecamatan.where((k) => k['nama'] == kecamatanDipilih).toList();
   }
 
   List<String> get daftarNamaKecamatan {
     final names = kecamatan.map((k) => k['nama'] as String).toList();
+
     names.sort();
+
     return ['Semua', ...names];
   }
 
   @override
   void initState() {
     super.initState();
+
     _ambilLokasi();
+    _ambilWilayah();
   }
 
   @override
@@ -84,26 +65,73 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   // =====================
+  // AMBIL DATA WILAYAH DARI API
+  // =====================
+  Future<void> _ambilWilayah() async {
+    setState(() {
+      _isLoadingWilayah = true;
+      _wilayahError = null;
+    });
+
+    try {
+      final wilayahs = await _supportDataService.getWilayahs();
+
+      final data = wilayahs
+          .where((wilayah) => wilayah.lat != null && wilayah.lng != null)
+          .map(
+            (wilayah) => {
+              'nama': wilayah.nama,
+              'lat': wilayah.lat!,
+              'lng': wilayah.lng!,
+            },
+          )
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        kecamatan = data;
+        _isLoadingWilayah = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingWilayah = false;
+        _wilayahError = 'Gagal memuat wilayah.';
+      });
+    }
+  }
+
+  // =====================
   // FUNGSI LOKASI GPS
   // =====================
   Future<void> _ambilLokasi() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
     if (!serviceEnabled) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('GPS tidak aktif, aktifkan dulu!')),
         );
       }
+
       return;
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
+
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
+
+      if (permission == LocationPermission.denied) {
+        return;
+      }
     }
 
-    if (permission == LocationPermission.deniedForever) return;
+    if (permission == LocationPermission.deniedForever) {
+      return;
+    }
 
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
@@ -117,7 +145,7 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   // =====================
-  // FUNGSI RUTE KE KECAMATAN
+  // FUNGSI RUTE KE WILAYAH
   // =====================
   Future<void> _ambilRute(LatLng tujuan) async {
     if (_lokasiSaya == null) {
@@ -127,6 +155,7 @@ class _MapsPageState extends State<MapsPage> {
           backgroundColor: Colors.orange,
         ),
       );
+
       return;
     }
 
@@ -140,6 +169,7 @@ class _MapsPageState extends State<MapsPage> {
           '?overview=full&geometries=geojson';
 
       final response = await Dio().get(url);
+
       final coords =
           response.data['routes'][0]['geometry']['coordinates'] as List;
 
@@ -147,10 +177,10 @@ class _MapsPageState extends State<MapsPage> {
         _rutePoints = coords
             .map((c) => LatLng(c[1].toDouble(), c[0].toDouble()))
             .toList();
+
         _isLoadingRute = false;
       });
 
-      // Fit map to show full route
       if (_rutePoints.isNotEmpty) {
         _mapController.move(
           LatLng(
@@ -162,6 +192,7 @@ class _MapsPageState extends State<MapsPage> {
       }
     } catch (e) {
       setState(() => _isLoadingRute = false);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -185,6 +216,8 @@ class _MapsPageState extends State<MapsPage> {
     setState(() => _isSearching = true);
 
     try {
+      // Cari terlebih dahulu dari wilayah yang
+      // didapatkan dari database/API
       final kecamatanMatch = kecamatan
           .where(
             (k) => (k['nama'] as String).toLowerCase().contains(
@@ -206,9 +239,12 @@ class _MapsPageState extends State<MapsPage> {
                 },
               )
               .toList();
+
           _isSearching = false;
         });
       } else {
+        // Kalau tidak ditemukan dari database,
+        // cari menggunakan Nominatim
         final response = await Dio().get(
           'https://nominatim.openstreetmap.org/search',
           queryParameters: {
@@ -233,10 +269,11 @@ class _MapsPageState extends State<MapsPage> {
   }
 
   // =====================
-  // TAMPILKAN BOTTOM SHEET DETAIL KECAMATAN
+  // TAMPILKAN DETAIL WILAYAH
   // =====================
   void _tampilkanDetailKecamatan(Map<String, dynamic> kec) {
     setState(() => _kecamatanTerpilih = kec);
+
     final latLng = LatLng(kec['lat'], kec['lng']);
 
     showModalBottomSheet(
@@ -258,7 +295,9 @@ class _MapsPageState extends State<MapsPage> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+
               const SizedBox(height: 16),
+
               Row(
                 children: [
                   Container(
@@ -274,7 +313,9 @@ class _MapsPageState extends State<MapsPage> {
                       size: 26,
                     ),
                   ),
+
                   const SizedBox(width: 12),
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,6 +327,7 @@ class _MapsPageState extends State<MapsPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+
                         const Text(
                           'Kabupaten Indramayu',
                           style: TextStyle(color: Colors.grey, fontSize: 13),
@@ -295,7 +337,9 @@ class _MapsPageState extends State<MapsPage> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 20),
+
               // Tombol Tampilkan Rute
               SizedBox(
                 width: double.infinity,
@@ -329,7 +373,9 @@ class _MapsPageState extends State<MapsPage> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 10),
+
               // Tombol Hapus Rute
               if (_rutePoints.isNotEmpty)
                 SizedBox(
@@ -338,7 +384,10 @@ class _MapsPageState extends State<MapsPage> {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
-                      setState(() => _rutePoints = []);
+
+                      setState(() {
+                        _rutePoints = [];
+                      });
                     },
                     icon: const Icon(Icons.clear, color: Colors.red),
                     label: const Text(
@@ -368,7 +417,9 @@ class _MapsPageState extends State<MapsPage> {
     return SafeArea(
       child: Stack(
         children: [
-          // --- 1. PETA ---
+          // =====================
+          // 1. PETA
+          // =====================
           FlutterMap(
             mapController: _mapController,
             options: const MapOptions(
@@ -383,7 +434,9 @@ class _MapsPageState extends State<MapsPage> {
                 userAgentPackageName: 'com.sinemu.app',
               ),
 
-              // Rute
+              // =====================
+              // RUTE
+              // =====================
               if (_rutePoints.isNotEmpty)
                 PolylineLayer(
                   polylines: [
@@ -395,6 +448,9 @@ class _MapsPageState extends State<MapsPage> {
                   ],
                 ),
 
+              // =====================
+              // MARKER
+              // =====================
               MarkerLayer(
                 markers: [
                   // Marker lokasi saya
@@ -416,7 +472,7 @@ class _MapsPageState extends State<MapsPage> {
                       ),
                     ),
 
-                  // Marker kecamatan
+                  // Marker wilayah dari API
                   ...kecamatanFiltered.map(
                     (kec) => Marker(
                       point: LatLng(kec['lat'], kec['lng']),
@@ -433,6 +489,7 @@ class _MapsPageState extends State<MapsPage> {
                                   : Colors.green,
                               size: 32,
                             ),
+
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 4,
@@ -466,7 +523,91 @@ class _MapsPageState extends State<MapsPage> {
             ],
           ),
 
-          // --- 2. SEARCH BAR ---
+          // =====================
+          // LOADING WILAYAH
+          // =====================
+          if (_isLoadingWilayah)
+            Positioned(
+              top: 80,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Text('Memuat wilayah...', style: TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // =====================
+          // ERROR WILAYAH
+          // =====================
+          if (_wilayahError != null)
+            Positioned(
+              top: 80,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red),
+
+                    const SizedBox(width: 8),
+
+                    Expanded(
+                      child: Text(
+                        _wilayahError!,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+
+                    TextButton(
+                      onPressed: _ambilWilayah,
+                      child: const Text('Coba lagi'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // =====================
+          // 2. SEARCH BAR
+          // =====================
           Positioned(
             top: 16,
             left: 16,
@@ -494,7 +635,9 @@ class _MapsPageState extends State<MapsPage> {
                         height: 32,
                         fit: BoxFit.contain,
                       ),
+
                       const SizedBox(width: 8),
+
                       Expanded(
                         child: Container(
                           height: 36,
@@ -527,7 +670,9 @@ class _MapsPageState extends State<MapsPage> {
                           ),
                         ),
                       ),
+
                       const SizedBox(width: 8),
+
                       _searchController.text.isNotEmpty
                           ? GestureDetector(
                               onTap: () => setState(() {
@@ -553,7 +698,9 @@ class _MapsPageState extends State<MapsPage> {
                   ),
                 ),
 
-                // Hasil pencarian
+                // =====================
+                // HASIL PENCARIAN
+                // =====================
                 if (_searchResults.isNotEmpty)
                   Container(
                     margin: const EdgeInsets.only(top: 4),
@@ -574,7 +721,9 @@ class _MapsPageState extends State<MapsPage> {
                           const Divider(height: 1, indent: 50),
                       itemBuilder: (context, index) {
                         final result = _searchResults[index];
+
                         final isKecamatan = result['isKecamatan'] == true;
+
                         return ListTile(
                           dense: true,
                           leading: Icon(
@@ -594,21 +743,28 @@ class _MapsPageState extends State<MapsPage> {
                           ),
                           onTap: () {
                             final lat = double.parse(result['lat']);
+
                             final lon = double.parse(result['lon']);
+
                             _mapController.move(LatLng(lat, lon), 14);
+
                             setState(() {
                               _searchResults = [];
                               _searchController.clear();
                             });
+
                             FocusScope.of(context).unfocus();
 
-                            // Kalau hasil pencarian adalah kecamatan, tampilkan detail
+                            // Kalau hasil pencarian
+                            // adalah wilayah dari database
                             if (isKecamatan) {
-                              final nama = result['namaKecamatan'] as String;
+                              final nama = result['namaKecamatan'];
+
                               final kec = kecamatan.firstWhere(
                                 (k) => k['nama'] == nama,
                                 orElse: () => {},
                               );
+
                               if (kec.isNotEmpty) {
                                 _tampilkanDetailKecamatan(kec);
                               }
@@ -619,7 +775,9 @@ class _MapsPageState extends State<MapsPage> {
                     ),
                   ),
 
-                // Loading
+                // =====================
+                // LOADING SEARCH
+                // =====================
                 if (_isSearching)
                   Container(
                     margin: const EdgeInsets.only(top: 4),
@@ -645,7 +803,9 @@ class _MapsPageState extends State<MapsPage> {
             ),
           ),
 
-          // --- 3. TOMBOL KONTROL KANAN ---
+          // =====================
+          // 3. TOMBOL KONTROL KANAN
+          // =====================
           Positioned(
             top: 86,
             right: 16,
@@ -655,7 +815,9 @@ class _MapsPageState extends State<MapsPage> {
                   onTap: _ambilLokasi,
                   child: _buildFloatingBtn(Icons.my_location),
                 ),
+
                 const SizedBox(height: 8),
+
                 GestureDetector(
                   onTap: () => _mapController.move(
                     _mapController.camera.center,
@@ -663,7 +825,9 @@ class _MapsPageState extends State<MapsPage> {
                   ),
                   child: _buildFloatingBtn(Icons.add),
                 ),
+
                 const SizedBox(height: 8),
+
                 GestureDetector(
                   onTap: () => _mapController.move(
                     _mapController.camera.center,
@@ -671,9 +835,11 @@ class _MapsPageState extends State<MapsPage> {
                   ),
                   child: _buildFloatingBtn(Icons.remove),
                 ),
+
                 // Tombol hapus rute
                 if (_rutePoints.isNotEmpty) ...[
                   const SizedBox(height: 8),
+
                   GestureDetector(
                     onTap: () => setState(() => _rutePoints = []),
                     child: _buildFloatingBtn(Icons.clear, color: Colors.red),
@@ -683,7 +849,9 @@ class _MapsPageState extends State<MapsPage> {
             ),
           ),
 
-          // Loading rute indicator
+          // =====================
+          // LOADING RUTE
+          // =====================
           if (_isLoadingRute)
             Positioned(
               top: 86,
@@ -721,7 +889,9 @@ class _MapsPageState extends State<MapsPage> {
               ),
             ),
 
-          // --- 4. PANEL FILTER KECAMATAN BAWAH ---
+          // =====================
+          // 4. PANEL FILTER
+          // =====================
           Positioned(
             bottom: 16,
             left: 16,
@@ -754,6 +924,7 @@ class _MapsPageState extends State<MapsPage> {
                           color: Colors.black87,
                         ),
                       ),
+
                       Text(
                         '${kecamatan.length} kecamatan',
                         style: const TextStyle(
@@ -763,7 +934,9 @@ class _MapsPageState extends State<MapsPage> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 10),
+
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -774,11 +947,13 @@ class _MapsPageState extends State<MapsPage> {
                               child: GestureDetector(
                                 onTap: () {
                                   setState(() => kecamatanDipilih = nama);
+
                                   if (nama != 'Semua') {
                                     final kec = kecamatan.firstWhere(
                                       (k) => k['nama'] == nama,
                                       orElse: () => {},
                                     );
+
                                     if (kec.isNotEmpty) {
                                       _mapController.move(
                                         LatLng(kec['lat'], kec['lng']),
@@ -811,6 +986,9 @@ class _MapsPageState extends State<MapsPage> {
     );
   }
 
+  // =====================
+  // FLOATING BUTTON
+  // =====================
   Widget _buildFloatingBtn(IconData icon, {Color? color}) {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -825,6 +1003,9 @@ class _MapsPageState extends State<MapsPage> {
     );
   }
 
+  // =====================
+  // FILTER CHIP
+  // =====================
   Widget _buildFilterChip(String label, bool isActive) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),

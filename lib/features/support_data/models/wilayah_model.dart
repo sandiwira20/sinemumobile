@@ -2,10 +2,14 @@ class WilayahModel {
   const WilayahModel({
     required this.id,
     required this.nama,
+    this.lat,
+    this.lng,
   });
 
   final String id;
   final String nama;
+  final double? lat;
+  final double? lng;
 
   factory WilayahModel.fromJson(Map<String, dynamic> json) {
     final nama =
@@ -22,6 +26,8 @@ class WilayahModel {
     return WilayahModel(
       id: _readString(json, ['id', 'wilayah_id', 'value']) ?? nama,
       nama: nama,
+      lat: _readDouble(json['lat']),
+      lng: _readDouble(json['lng']),
     );
   }
 
@@ -34,5 +40,10 @@ class WilayahModel {
     }
 
     return null;
+  }
+
+  static double? _readDouble(dynamic value) {
+    if (value == null) return null;
+    return double.tryParse(value.toString());
   }
 }
