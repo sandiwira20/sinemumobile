@@ -165,6 +165,11 @@ class LaporanService {
 
   Future<List<LaporanModel>> _getLaporanFrom(String path) async {
     final response = await _apiClient.get(path);
+
+    print('========== RESPONSE LAPORAN ==========');
+    print(response);
+    print('======================================');
+
     return _extractList(response)
         .whereType<Map>()
         .map((item) => LaporanModel.fromJson(Map<String, dynamic>.from(item)))
@@ -183,10 +188,12 @@ class LaporanService {
     };
     final response = await _apiClient.get(path);
     final data = _extractMap(response);
-    if (data['id'] == null || data['id'].toString().trim().isEmpty)
+    if (data['id'] == null || data['id'].toString().trim().isEmpty) {
       data['id'] = id;
-    if (data['type'] == null || data['type'].toString().trim().isEmpty)
+    }
+    if (data['type'] == null || data['type'].toString().trim().isEmpty) {
       data['type'] = normalizedType;
+    }
     return LaporanModel.fromJson(data);
   }
 

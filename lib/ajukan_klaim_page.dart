@@ -251,8 +251,9 @@ class _AjukanKlaimPageState extends State<AjukanKlaimPage> {
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Wajib diisi';
                       final regex = RegExp(r'^([01]?\d|2[0-3]):[0-5]\d$');
-                      if (!regex.hasMatch(v.trim()))
+                      if (!regex.hasMatch(v.trim())) {
                         return 'Format waktu tidak valid (HH:MM)';
+                      }
                       return null;
                     },
                   ),

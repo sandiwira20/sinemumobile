@@ -9,6 +9,11 @@ class KlaimService {
 
   Future<List<KlaimModel>> getKlaim() async {
     final response = await _apiClient.get('/klaim');
+
+    print('========== RESPONSE KLAIM ==========');
+    print(response);
+    print('======================================');
+
     final items = _extractList(response);
     return items
         .whereType<Map>()

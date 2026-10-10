@@ -167,16 +167,20 @@ class _LaporTemuanPageState extends State<LaporTemuanPage> {
   // ─── Validation ──────────────────────────────────────────────────────────────
 
   String? _validateForm() {
-    if (_namaBarangController.text.trim().isEmpty)
+    if (_namaBarangController.text.trim().isEmpty) {
       return 'Nama barang wajib diisi.';
+    }
     if (_selectedWilayahId == null) return 'Wilayah kejadian wajib dipilih.';
-    if (_lokasiController.text.trim().isEmpty)
+    if (_lokasiController.text.trim().isEmpty) {
       return 'Lokasi ditemukan wajib diisi.';
+    }
     if (_selectedTanggal == null) return 'Tanggal ditemukan wajib dipilih.';
-    if (_deskripsiController.text.trim().isEmpty)
+    if (_deskripsiController.text.trim().isEmpty) {
       return 'Deskripsi barang temuan wajib diisi.';
-    if (_noWaController.text.trim().isEmpty)
+    }
+    if (_noWaController.text.trim().isEmpty) {
       return 'No. WA yang bisa dihubungi wajib diisi.';
+    }
     return null;
   }
 
@@ -578,8 +582,9 @@ const SizedBox(height: 20),
   }
 
   Widget _buildKategoriDropdown() {
-    if (_kategoris.isEmpty)
+    if (_kategoris.isEmpty) {
       return _buildEmptySupportDataField('Belum ada kategori dari server');
+    }
     return DropdownButtonFormField<String>(
       key: ValueKey('kategori-${_selectedKategoriId ?? 'empty'}'),
       initialValue: _selectedKategoriId,
@@ -598,8 +603,9 @@ const SizedBox(height: 20),
   }
 
   Widget _buildWilayahDropdown() {
-    if (_wilayahs.isEmpty)
+    if (_wilayahs.isEmpty) {
       return _buildEmptySupportDataField('Belum ada wilayah dari server');
+    }
     return DropdownButtonFormField<String>(
       key: ValueKey('wilayah-${_selectedWilayahId ?? 'empty'}'),
       initialValue: _selectedWilayahId,

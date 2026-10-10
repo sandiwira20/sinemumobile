@@ -1,6 +1,7 @@
 class KlaimModel {
   const KlaimModel({
     required this.id,
+    required this.nomorKlaim,
     required this.barangId,
     required this.namaBarang,
     required this.status,
@@ -8,9 +9,11 @@ class KlaimModel {
     required this.kontak,
     required this.tanggal,
     required this.statusBarang,
+    required this.wilayah,
   });
 
   final String id;
+  final String nomorKlaim;
   final String barangId;
   final String namaBarang;
   final String status;
@@ -18,10 +21,12 @@ class KlaimModel {
   final String kontak;
   final String tanggal;
   final String statusBarang;
+  final String wilayah;
 
   factory KlaimModel.fromJson(Map<String, dynamic> json) {
     return KlaimModel(
       id: _readString(json, ['id', 'klaim_id']) ?? '',
+      nomorKlaim: _readString(json, ['nomor_klaim', 'klaim_number']) ?? '',
       barangId:
           _readString(json, ['barang_id', 'barang_temuan_id', 'laporan_id']) ??
           _readNestedValue(json, 'barang', ['id', 'barang_id']) ??
@@ -51,6 +56,11 @@ class KlaimModel {
             'status',
             'status_barang',
           ]) ??
+          '',
+      wilayah:
+          _readString(json, ['wilayah', 'area']) ??
+          _readNestedValue(json, 'barang', ['wilayah', 'area']) ??
+          _readNestedValue(json, 'barang_temuan', ['wilayah', 'area']) ??
           '',
     );
   }
