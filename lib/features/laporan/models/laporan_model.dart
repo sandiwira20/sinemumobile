@@ -44,7 +44,7 @@ class LaporanModel {
   final String statusBarang;
 
   // ─── BASE URL untuk normalisasi gambar ───
-  static const String _apiBase = 'http://192.168.1.6:8000';
+  static const String _apiBase = 'http://192.168.56.1:8000';
 
   factory LaporanModel.fromJson(Map<String, dynamic> json) {
     final type = _normalizeType(

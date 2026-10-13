@@ -1,7 +1,7 @@
 class ApiConfig {
   static const String baseUrl = String.fromEnvironment(
     'SINEMU_API_BASE_URL',
-    defaultValue: 'http://192.168.1.6:8000/api',
+    defaultValue: 'https://sinemu.my.id/api',
   );
 
   static const String googleServerClientId = String.fromEnvironment(
