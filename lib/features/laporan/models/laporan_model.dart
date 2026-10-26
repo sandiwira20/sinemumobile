@@ -42,9 +42,8 @@ class LaporanModel {
   final String? claimBlockReason;
   final bool isOwner;
   final String statusBarang;
-
   // ─── BASE URL untuk normalisasi gambar ───
-  static const String _apiBase = 'http://192.168.56.1:8000';
+  static const String _apiBase = 'http://192.168.1.6:8000/api';
 
   factory LaporanModel.fromJson(Map<String, dynamic> json) {
     final type = _normalizeType(
@@ -177,17 +176,24 @@ class LaporanModel {
 
   // ─── HELPER: Normalisasi URL gambar ───────────────────────────
   static String _normalizeImageUrl(String url) {
-    if (url.isEmpty) return '';
+    final value = url.trim();
 
-    String result;
+    if (value.isEmpty) return '';
 
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      result = url;
-    } else if (url.startsWith('/')) {
-      result = '$_apiBase$url';
-    } else {
-      result = '$_apiBase/$url';
+    // URL sudah lengkap: jangan ubah.
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      print('🖼️ IMAGE URL: $value');
+      return value;
     }
+
+    // Alamat dasar server Laravel, TANPA /api.
+    const String baseUrl = 'http://192.168.1.6:8000';
+
+    // Hapus slash awal agar URL tidak menjadi /api/storage.
+    final path = value.startsWith('/') ? value.substring(1) : value;
+
+    // Jika path sudah diawali storage/, gunakan langsung.
+    final String result = '$baseUrl/$path';
 
     print('🖼️ IMAGE URL: $result');
     return result;

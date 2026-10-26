@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
+
 import '../../../core/network/api_client.dart';
 import '../models/klaim_model.dart';
 
@@ -11,7 +13,7 @@ class KlaimService {
     final response = await _apiClient.get('/klaim');
 
     print('========== RESPONSE KLAIM ==========');
-    print(response);
+    debugPrint('RESPONSE KLAIM: $response');
     print('======================================');
 
     final items = _extractList(response);

@@ -93,13 +93,25 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
     try {
       final klaims = await _klaimService.getKlaim();
 
+      debugPrint('JUMLAH KLAIM: ${klaims.length}');
+      for (final klaim in klaims) {
+        debugPrint(
+          'KLAIM ID: ${klaim.id}, '
+          'BARANG ID: ${klaim.barangId}, '
+          'NAMA: ${klaim.namaBarang}',
+        );
+      }
+
       if (!mounted) return;
 
       setState(() {
         _klaims = klaims;
         _isLoadingKlaim = false;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('ERROR LOAD KLAIM: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
       if (!mounted) return;
 
       setState(() {
@@ -330,15 +342,69 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => PanduanPengambilanPage(
-                namaBarang: klaim.namaBarang,
-                wilayah: _wilayahKlaim(klaim),
-                nomorKlaim: klaim.id.toString(),
-                statusKlaim: klaim.statusLabel,
-                kontak: klaim.kontak,
-                tanggal: klaim.tanggalDisplay,
-                keterangan: klaim.alasan,
-              ),
+              builder: (context) {
+                final laporan = _cariLaporanTemuan(klaim);
+
+                debugPrint('ID KLAIM: ${klaim.id}');
+                debugPrint('BARANG ID KLAIM: ${klaim.barangId}');
+                debugPrint('LAPORAN DITEMUKAN: ${laporan != null}');
+                debugPrint('FOTO LAPORAN: ${laporan?.imageUrl}');
+                debugPrint('KATEGORI: ${laporan?.kategori}');
+                debugPrint('LOKASI: ${laporan?.lokasi}');
+                debugPrint('DESKRIPSI: ${laporan?.deskripsi}');
+
+                final ciriKhusus =
+                    [laporan?.warnaDominan, laporan?.merek, laporan?.nomorSeri]
+                        .whereType<String>()
+                        .where((s) => s.trim().isNotEmpty)
+                        .join(', ');
+
+                return PanduanPengambilanPage(
+                  namaBarang: klaim.namaBarang,
+                  wilayah: _wilayahKlaim(klaim),
+                  nomorKlaim: klaim.id,
+                  statusKlaim: klaim.statusLabel,
+                  kontak: klaim.kontak,
+                  tanggal: klaim.tanggalDisplay,
+                  keterangan: klaim.alasan,
+
+                  // Rincian barang temuan
+                  fotoBarang: klaim.fotoBarang.isNotEmpty
+                      ? klaim.fotoBarang
+                      : (laporan?.imageUrl ?? ''),
+                  kategoriBarang: laporan?.kategori == '-'
+                      ? ''
+                      : (laporan?.kategori ?? ''),
+                  lokasiDitemukan: laporan?.lokasi == '-'
+                      ? ''
+                      : (laporan?.lokasi ?? ''),
+                  tanggalTemuan: laporan?.tanggal == '-'
+                      ? ''
+                      : (laporan?.tanggal ?? ''),
+                  deskripsiBarang: laporan?.deskripsi == '-'
+                      ? ''
+                      : (laporan?.deskripsi ?? ''),
+                  ciriKhusus: ciriKhusus,
+
+                  // Kode pengambilan dan informasi posko
+                  kodePengambilan: klaim.kodePengambilan.isNotEmpty
+                      ? klaim.kodePengambilan
+                      : '#KLM-${klaim.id.padLeft(5, '0')}',
+                  namaPosko: klaim.namaPosko,
+                  alamatPosko: klaim.alamatPosko,
+                  wilayahPosko: klaim.wilayahPosko.isNotEmpty
+                      ? klaim.wilayahPosko
+                      : _wilayahKlaim(klaim),
+                  jamLayanan: klaim.jamLayanan,
+                  penanggungJawab: klaim.penanggungJawab,
+                  catatanPosko: klaim.catatanPosko,
+
+                  // Informasi pengaju
+                  namaPengambil: '',
+                  emailPengambil: '',
+                  buktiKepemilikan: klaim.alasan,
+                );
+              },
             ),
           );
         },
@@ -439,12 +505,20 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
   // ============================================================
 
   LaporanModel? _cariLaporanTemuan(KlaimModel klaim) {
+    final barangId = klaim.barangId.trim();
+
     for (final laporan in _laporanTemuan) {
-      if (laporan.id == klaim.barangId) {
+      if (laporan.id.trim() == barangId &&
+          laporan.namaBarang.trim().toLowerCase() ==
+              klaim.namaBarang.trim().toLowerCase()) {
+        debugPrint('LAPORAN COCOK: ${laporan.namaBarang}');
+        debugPrint('ID LAPORAN: ${laporan.id}');
+        debugPrint('FOTO: ${laporan.imageUrl}');
         return laporan;
       }
     }
 
+    debugPrint('LAPORAN YANG SESUAI TIDAK DITEMUKAN');
     return null;
   }
 
