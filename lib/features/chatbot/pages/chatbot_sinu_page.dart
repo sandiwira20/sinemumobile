@@ -146,14 +146,10 @@ class _ChatbotSinuPageState extends State<ChatbotSinuPage> {
           children: [
             Stack(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 20,
-                  backgroundColor: primaryColor.withValues(alpha: 0.12),
-                  child: const Icon(
-                    Icons.smart_toy_rounded,
-                    color: primaryColor,
-                    size: 24,
-                  ),
+                  backgroundColor: Colors.transparent,
+                  backgroundImage: AssetImage('assets/images/chatbot-icon.png'),
                 ),
                 Positioned(
                   right: 0,
@@ -238,18 +234,11 @@ class _ChatbotSinuPageState extends State<ChatbotSinuPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
+            Image.asset(
+              'assets/images/chatbot-icon.png',
               width: 80,
               height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFF5B4FCF).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.smart_toy_rounded,
-                size: 46,
-                color: Color(0xFF5B4FCF),
-              ),
+              fit: BoxFit.contain,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -318,14 +307,10 @@ class _ChatbotSinuPageState extends State<ChatbotSinuPage> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
-            CircleAvatar(
+            const CircleAvatar(
               radius: 16,
-              backgroundColor: const Color(0xFF5B4FCF).withValues(alpha: 0.12),
-              child: const Icon(
-                Icons.smart_toy_rounded,
-                size: 18,
-                color: Color(0xFF5B4FCF),
-              ),
+              backgroundColor: Colors.transparent,
+              backgroundImage: AssetImage('assets/images/chatbot-icon.png'),
             ),
             const SizedBox(width: 8),
           ],
@@ -389,14 +374,10 @@ class _ChatbotSinuPageState extends State<ChatbotSinuPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             radius: 12,
-            backgroundColor: const Color(0xFF5B4FCF).withValues(alpha: 0.12),
-            child: const Icon(
-              Icons.smart_toy_rounded,
-              size: 14,
-              color: Color(0xFF5B4FCF),
-            ),
+            backgroundColor: Colors.transparent,
+            backgroundImage: AssetImage('assets/images/chatbot-icon.png'),
           ),
           const SizedBox(width: 8),
           Container(

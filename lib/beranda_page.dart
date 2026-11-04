@@ -266,7 +266,11 @@ class _BerandaPageState extends State<BerandaPage> {
         backgroundColor: const Color(0xFF5B4FCF),
         foregroundColor: Colors.white,
         elevation: 4,
-        icon: const Icon(Icons.smart_toy_rounded),
+        icon: Image.asset(
+          'assets/images/chatbot-icon.png',
+          width: 26,
+          height: 26,
+        ),
         label: const Text(
           'Tanya Sinu',
           style: TextStyle(fontWeight: FontWeight.bold),
