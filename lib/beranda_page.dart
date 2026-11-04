@@ -11,6 +11,7 @@ import 'features/laporan/models/laporan_model.dart';
 import 'features/laporan/services/laporan_service.dart';
 import 'user_data.dart';
 import 'lapor_temuan_page.dart';
+import 'features/chatbot/pages/chatbot_sinu_page.dart';
 
 // UBAH JADI STATEFUL WIDGET BIAR BISA NAMPILIN DATA DINAMIS
 class BerandaPage extends StatefulWidget {
@@ -58,12 +59,12 @@ class _BerandaPageState extends State<BerandaPage> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4A90E2).withOpacity(0.1),
+                            color: const Color(0xFF5B4FCF).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
                             Icons.assignment_outlined,
-                            color: Color(0xFF4A90E2),
+                            color: Color(0xFF5B4FCF),
                           ),
                         ),
                         const SizedBox(width: 15),
@@ -113,7 +114,7 @@ class _BerandaPageState extends State<BerandaPage> {
                     // OPSI 2: BARANG TEMUAN
                     _buildMenuOption(
                       icon: Icons.check_circle_outline,
-                      color: const Color(0xFF4A90E2),
+                      color: const Color(0xFF5B4FCF),
                       title: "Lapor Barang Temuan",
                       subtitle: "Kembalikan barang yang Anda temukan.",
                       onTap: () {
@@ -258,8 +259,29 @@ class _BerandaPageState extends State<BerandaPage> {
         ? 'Pengguna'
         : UserData.nama.trim();
 
-    return SafeArea(
-      child: RefreshIndicator(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'sinuChatbotFAB',
+        backgroundColor: const Color(0xFF5B4FCF),
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(Icons.smart_toy_rounded),
+        label: const Text(
+          'Tanya Sinu',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ChatbotSinuPage(),
+            ),
+          );
+        },
+      ),
+      body: SafeArea(
+        child: RefreshIndicator(
         onRefresh: _ambilDataLaporan,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -345,7 +367,7 @@ class _BerandaPageState extends State<BerandaPage> {
                           children: [
                             TextSpan(
                               text: userName,
-                              style: const TextStyle(color: Color(0xFF4A90E2)),
+                              style: const TextStyle(color: Color(0xFF5B4FCF)),
                             ),
                           ],
                         ),
@@ -478,6 +500,7 @@ class _BerandaPageState extends State<BerandaPage> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -613,7 +636,7 @@ class _BerandaPageState extends State<BerandaPage> {
           child: const Text(
             'Lihat Semua',
             style: TextStyle(
-              color: Color(0xFF4A90E2),
+              color: Color(0xFF5B4FCF),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -703,7 +726,7 @@ class _BerandaPageState extends State<BerandaPage> {
                       Text(
                         category,
                         style: const TextStyle(
-                          color: Color(0xFF4A90E2),
+                          color: Color(0xFF5B4FCF),
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),

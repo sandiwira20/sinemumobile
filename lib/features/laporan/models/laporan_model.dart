@@ -1,3 +1,5 @@
+import '../../../core/config/api_config.dart';
+
 class LaporanModel {
   const LaporanModel({
     required this.id,
@@ -42,8 +44,6 @@ class LaporanModel {
   final String? claimBlockReason;
   final bool isOwner;
   final String statusBarang;
-  // ─── BASE URL untuk normalisasi gambar ───
-  static const String _apiBase = 'http://192.168.1.6:8000/api';
 
   factory LaporanModel.fromJson(Map<String, dynamic> json) {
     final type = _normalizeType(
@@ -102,7 +102,7 @@ class LaporanModel {
             'created_at',
           ]) ??
           '-',
-      imageUrl: _normalizeImageUrl(rawImageUrl), // ← PERBAIKAN DI SINI
+      imageUrl: ApiConfig.normalizeImageUrl(rawImageUrl),
       warnaDominan: _readString(json, ['warna_dominan', 'warna']),
       merek: _readString(json, ['merek', 'brand', 'merk']),
       nomorSeri: _readString(json, [
@@ -172,31 +172,6 @@ class LaporanModel {
   String get tanggalDisplay {
     if (tanggal.length >= 10) return tanggal.substring(0, 10);
     return tanggal;
-  }
-
-  // ─── HELPER: Normalisasi URL gambar ───────────────────────────
-  static String _normalizeImageUrl(String url) {
-    final value = url.trim();
-
-    if (value.isEmpty) return '';
-
-    // URL sudah lengkap: jangan ubah.
-    if (value.startsWith('http://') || value.startsWith('https://')) {
-      print('🖼️ IMAGE URL: $value');
-      return value;
-    }
-
-    // Alamat dasar server Laravel, TANPA /api.
-    const String baseUrl = 'http://192.168.1.6:8000';
-
-    // Hapus slash awal agar URL tidak menjadi /api/storage.
-    final path = value.startsWith('/') ? value.substring(1) : value;
-
-    // Jika path sudah diawali storage/, gunakan langsung.
-    final String result = '$baseUrl/$path';
-
-    print('🖼️ IMAGE URL: $result');
-    return result;
   }
 
   static String _normalizeType(String? value) {

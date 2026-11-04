@@ -137,6 +137,8 @@ class _MapsPageState extends State<MapsPage> {
       desiredAccuracy: LocationAccuracy.high,
     );
 
+    if (!mounted) return;
+
     setState(() {
       _lokasiSaya = LatLng(position.latitude, position.longitude);
     });
@@ -169,6 +171,8 @@ class _MapsPageState extends State<MapsPage> {
           '?overview=full&geometries=geojson';
 
       final response = await Dio().get(url);
+
+      if (!mounted) return;
 
       final coords =
           response.data['routes'][0]['geometry']['coordinates'] as List;
@@ -257,6 +261,8 @@ class _MapsPageState extends State<MapsPage> {
           },
           options: Options(headers: {'User-Agent': 'SiNemuApp/1.0'}),
         );
+
+        if (!mounted) return;
 
         setState(() {
           _searchResults = response.data;
@@ -429,8 +435,8 @@ class _MapsPageState extends State<MapsPage> {
             children: [
               TileLayer(
                 urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                // subdomains default osm
                 userAgentPackageName: 'com.sinemu.app',
               ),
 

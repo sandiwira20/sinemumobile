@@ -19,14 +19,22 @@ class SiNemuApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFF5B4FCF);
+
     return MaterialApp(
       title: 'SiNemu',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4A90E2)),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryColor,
+          primary: primaryColor,
+        ),
         useMaterial3: true,
-        fontFamily:
-            'Inter', // Pastikan Abang nanti tambahin font di pubspec.yaml
+        fontFamily: 'Inter',
+        appBarTheme: const AppBarTheme(
+          centerTitle: false,
+          elevation: 0,
+        ),
       ),
       home: const AuthGate(
         authenticatedPage: MainScreen(),
@@ -46,7 +54,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // Placeholder untuk halaman-halaman nanti
   static const List<Widget> _pages = <Widget>[
     BerandaPage(),
     MapsPage(),
@@ -62,48 +69,59 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFF5B4FCF);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Warna background abu-abu muda
+      backgroundColor: const Color(0xFFF8F9FE),
       body: _pages[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF4A90E2), // Warna biru aktif
-          unselectedItemColor: Colors.grey,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'BERANDA',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.map_outlined),
-              activeIcon: Icon(Icons.map),
-              label: 'MAPS',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_none_outlined),
-              activeIcon: Icon(Icons.notifications),
-              label: 'NOTIFIKASI',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'AKUN',
-            ),
-          ],
+        child: SafeArea(
+          top: false,
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.white,
+            selectedItemColor: primaryColor,
+            unselectedItemColor: const Color(0xFF9E9E9E),
+            selectedFontSize: 11,
+            unselectedFontSize: 11,
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+            elevation: 0,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            items: const <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home_rounded),
+                label: 'BERANDA',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.map_outlined),
+                activeIcon: Icon(Icons.map_rounded),
+                label: 'MAPS',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.notifications_none_rounded),
+                activeIcon: Icon(Icons.notifications_rounded),
+                label: 'NOTIFIKASI',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline_rounded),
+                activeIcon: Icon(Icons.person_rounded),
+                label: 'AKUN',
+              ),
+            ],
+          ),
         ),
       ),
     );

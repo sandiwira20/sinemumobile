@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'core/config/api_config.dart';
 
 class PanduanPengambilanPage extends StatefulWidget {
   const PanduanPengambilanPage({
@@ -76,7 +77,7 @@ class _PanduanPengambilanPageState extends State<PanduanPengambilanPage> {
     return value;
   }
 
-  const baseUrl = 'http://192.168.1.6:8000';
+  final baseUrl = ApiConfig.rootUrl;
 
   // Hapus prefix storage/ atau public/ jika ada.
   var path = value.replaceAll('\\', '/');
