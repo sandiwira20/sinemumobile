@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'user_data.dart';
 import 'panduang_pengambilan_page.dart';
 import 'core/network/api_client.dart';
 import 'features/klaim/models/klaim_model.dart';
@@ -359,32 +360,63 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
                         .where((s) => s.trim().isNotEmpty)
                         .join(', ');
 
+                final namaPengambil = klaim.namaPengambil.trim().isNotEmpty
+                    ? klaim.namaPengambil.trim()
+                    : UserData.nama.trim();
+
+                final emailPengambil = klaim.emailPengambil.trim().isNotEmpty
+                    ? klaim.emailPengambil.trim()
+                    : UserData.email.trim();
+
+                final kontakPengambil = klaim.kontak.trim().isNotEmpty && klaim.kontak.trim() != '-'
+                    ? klaim.kontak.trim()
+                    : UserData.phone.trim();
+
+                final fotoBarang = klaim.fotoBarang.trim().isNotEmpty
+                    ? klaim.fotoBarang.trim()
+                    : (laporan?.imageUrl ?? '');
+
+                final kategoriBarang = klaim.kategoriBarang.trim().isNotEmpty
+                    ? klaim.kategoriBarang.trim()
+                    : (laporan?.kategori == '-' ? '' : (laporan?.kategori ?? ''));
+
+                final lokasiDitemukan = klaim.lokasiDitemukan.trim().isNotEmpty
+                    ? klaim.lokasiDitemukan.trim()
+                    : (laporan?.lokasi == '-' ? '' : (laporan?.lokasi ?? ''));
+
+                final tanggalTemuan = klaim.tanggalTemuan.trim().isNotEmpty
+                    ? klaim.tanggalTemuan.trim()
+                    : (laporan?.tanggal == '-' ? '' : (laporan?.tanggal ?? ''));
+
+                final deskripsiBarang = klaim.deskripsiBarang.trim().isNotEmpty
+                    ? klaim.deskripsiBarang.trim()
+                    : (laporan?.deskripsi == '-' ? '' : (laporan?.deskripsi ?? ''));
+
+                final ciriDariPemilik = klaim.ciriDariPemilik.trim().isNotEmpty
+                    ? klaim.ciriDariPemilik.trim()
+                    : (ciriKhusus.isNotEmpty ? ciriKhusus : '');
+
+                final buktiKepemilikan = klaim.buktiKepemilikan.trim().isNotEmpty
+                    ? klaim.buktiKepemilikan.trim()
+                    : (klaim.alasan != '-' ? klaim.alasan : '');
+
                 return PanduanPengambilanPage(
                   namaBarang: klaim.namaBarang,
                   wilayah: _wilayahKlaim(klaim),
                   nomorKlaim: klaim.id,
                   statusKlaim: klaim.statusLabel,
-                  kontak: klaim.kontak,
+                  kontak: kontakPengambil,
                   tanggal: klaim.tanggalDisplay,
                   keterangan: klaim.alasan,
 
                   // Rincian barang temuan
-                  fotoBarang: klaim.fotoBarang.isNotEmpty
-                      ? klaim.fotoBarang
-                      : (laporan?.imageUrl ?? ''),
-                  kategoriBarang: laporan?.kategori == '-'
-                      ? ''
-                      : (laporan?.kategori ?? ''),
-                  lokasiDitemukan: laporan?.lokasi == '-'
-                      ? ''
-                      : (laporan?.lokasi ?? ''),
-                  tanggalTemuan: laporan?.tanggal == '-'
-                      ? ''
-                      : (laporan?.tanggal ?? ''),
-                  deskripsiBarang: laporan?.deskripsi == '-'
-                      ? ''
-                      : (laporan?.deskripsi ?? ''),
-                  ciriKhusus: ciriKhusus,
+                  fotoBarang: fotoBarang,
+                  kategoriBarang: kategoriBarang,
+                  lokasiDitemukan: lokasiDitemukan,
+                  tanggalTemuan: tanggalTemuan,
+                  deskripsiBarang: deskripsiBarang,
+                  ciriKhusus: ciriDariPemilik,
+                  ciriDariPemilik: ciriDariPemilik,
 
                   // Kode pengambilan dan informasi posko
                   kodePengambilan: klaim.kodePengambilan.isNotEmpty
@@ -398,11 +430,12 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
                   jamLayanan: klaim.jamLayanan,
                   penanggungJawab: klaim.penanggungJawab,
                   catatanPosko: klaim.catatanPosko,
+                  kontakPosko: klaim.kontakPosko,
 
                   // Informasi pengaju
-                  namaPengambil: '',
-                  emailPengambil: '',
-                  buktiKepemilikan: klaim.alasan,
+                  namaPengambil: namaPengambil,
+                  emailPengambil: emailPengambil,
+                  buktiKepemilikan: buktiKepemilikan,
                 );
               },
             ),

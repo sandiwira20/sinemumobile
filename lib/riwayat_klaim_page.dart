@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'core/network/api_client.dart';
 import 'features/klaim/models/klaim_model.dart';
 import 'features/klaim/services/klaim_service.dart';
+import 'panduang_pengambilan_page.dart';
+import 'user_data.dart';
 
 class RiwayatKlaimPage extends StatefulWidget {
   const RiwayatKlaimPage({super.key});
@@ -339,6 +341,66 @@ class _KlaimDetailSheetState extends State<_KlaimDetailSheet> {
             _buildInfoRow('Kontak', klaim.kontak),
             _buildInfoRow('Tanggal Pengajuan', klaim.tanggalDisplay),
             _buildInfoRow('Status Barang', klaim.statusBarangLabel),
+            if (klaim.statusLabel.toLowerCase().contains('disetujui') ||
+                klaim.statusLabel.toLowerCase().contains('siap diambil') ||
+                klaim.siapDiambil) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PanduanPengambilanPage(
+                          namaBarang: klaim.namaBarang,
+                          wilayah: klaim.wilayah,
+                          nomorKlaim: klaim.id,
+                          statusKlaim: klaim.statusLabel,
+                          kontak: klaim.kontak,
+                          tanggal: klaim.tanggalDisplay,
+                          keterangan: klaim.alasan,
+                          fotoBarang: klaim.fotoBarang,
+                          kategoriBarang: klaim.kategoriBarang,
+                          lokasiDitemukan: klaim.lokasiDitemukan,
+                          tanggalTemuan: klaim.tanggalTemuan,
+                          deskripsiBarang: klaim.deskripsiBarang,
+                          ciriKhusus: klaim.ciriDariPemilik,
+                          ciriDariPemilik: klaim.ciriDariPemilik,
+                          kodePengambilan: klaim.kodePengambilan,
+                          namaPosko: klaim.namaPosko,
+                          alamatPosko: klaim.alamatPosko,
+                          wilayahPosko: klaim.wilayahPosko,
+                          jamLayanan: klaim.jamLayanan,
+                          penanggungJawab: klaim.penanggungJawab,
+                          catatanPosko: klaim.catatanPosko,
+                          kontakPosko: klaim.kontakPosko,
+                          namaPengambil: klaim.namaPengambil.isNotEmpty
+                              ? klaim.namaPengambil
+                              : UserData.nama,
+                          emailPengambil: klaim.emailPengambil.isNotEmpty
+                              ? klaim.emailPengambil
+                              : UserData.email,
+                          buktiKepemilikan: klaim.buktiKepemilikan.isNotEmpty
+                              ? klaim.buktiKepemilikan
+                              : klaim.alasan,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.confirmation_number_outlined),
+                  label: const Text('Lihat Tiket Pengambilan'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF357ABD),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
