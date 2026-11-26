@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import 'user_data.dart';
@@ -95,6 +96,7 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
       final klaims = await _klaimService.getKlaim();
 
       debugPrint('JUMLAH KLAIM: ${klaims.length}');
+
       for (final klaim in klaims) {
         debugPrint(
           'KLAIM ID: ${klaim.id}, '
@@ -228,7 +230,9 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -325,10 +329,12 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {
+        onTap: () async {
           if (!disetujui) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -340,65 +346,120 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
             return;
           }
 
+          // Ambil detail laporan temuan berdasarkan barang_id.
+          LaporanModel? laporan;
+
+          final barangId = int.tryParse(klaim.barangId);
+
+          if (barangId != null) {
+            try {
+              laporan = await _laporanService.getDetailLaporan(
+                id: barangId,
+                type: 'temuan',
+              );
+
+              debugPrint('========== DETAIL LAPORAN BERHASIL ==========');
+              debugPrint('ID BARANG: ${laporan.id}');
+              debugPrint('FOTO: ${laporan.imageUrl}');
+              debugPrint('NAMA: ${laporan.namaBarang}');
+              debugPrint('KATEGORI: ${laporan.kategori}');
+              debugPrint('LOKASI: ${laporan.lokasi}');
+              debugPrint('DESKRIPSI: ${laporan.deskripsi}');
+              debugPrint('==============================================');
+            } catch (e) {
+              debugPrint('GAGAL MEMUAT DETAIL LAPORAN: $e');
+              laporan = _cariLaporanTemuan(klaim);
+            }
+          }
+
+          if (!mounted) return;
+
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) {
-                final laporan = _cariLaporanTemuan(klaim);
-
+                debugPrint('========== DATA PANDUAN KLAIM ==========');
                 debugPrint('ID KLAIM: ${klaim.id}');
-                debugPrint('BARANG ID KLAIM: ${klaim.barangId}');
+                debugPrint('BARANG ID: ${klaim.barangId}');
                 debugPrint('LAPORAN DITEMUKAN: ${laporan != null}');
                 debugPrint('FOTO LAPORAN: ${laporan?.imageUrl}');
                 debugPrint('KATEGORI: ${laporan?.kategori}');
                 debugPrint('LOKASI: ${laporan?.lokasi}');
                 debugPrint('DESKRIPSI: ${laporan?.deskripsi}');
+                debugPrint('=========================================');
 
-                final ciriKhusus =
-                    [laporan?.warnaDominan, laporan?.merek, laporan?.nomorSeri]
-                        .whereType<String>()
-                        .where((s) => s.trim().isNotEmpty)
-                        .join(', ');
+                final ciriKhusus = [
+                  laporan?.warnaDominan,
+                  laporan?.merek,
+                  laporan?.nomorSeri,
+                ]
+                    .whereType<String>()
+                    .where((s) => s.trim().isNotEmpty)
+                    .join(', ');
 
-                final namaPengambil = klaim.namaPengambil.trim().isNotEmpty
-                    ? klaim.namaPengambil.trim()
-                    : UserData.nama.trim();
+                final namaPengambil =
+                    klaim.namaPengambil.trim().isNotEmpty
+                        ? klaim.namaPengambil.trim()
+                        : UserData.nama.trim();
 
-                final emailPengambil = klaim.emailPengambil.trim().isNotEmpty
-                    ? klaim.emailPengambil.trim()
-                    : UserData.email.trim();
+                final emailPengambil =
+                    klaim.emailPengambil.trim().isNotEmpty
+                        ? klaim.emailPengambil.trim()
+                        : UserData.email.trim();
 
-                final kontakPengambil = klaim.kontak.trim().isNotEmpty && klaim.kontak.trim() != '-'
-                    ? klaim.kontak.trim()
-                    : UserData.phone.trim();
+                final kontakPengambil =
+                    klaim.kontak.trim().isNotEmpty &&
+                            klaim.kontak.trim() != '-'
+                        ? klaim.kontak.trim()
+                        : UserData.phone.trim();
 
-                final fotoBarang = klaim.fotoBarang.trim().isNotEmpty
-                    ? klaim.fotoBarang.trim()
+                // Hindari menggunakan gambar placeholder dari API klaim.
+                final fotoKlaim = klaim.fotoBarang.trim();
+
+                final fotoBarang = fotoKlaim.isNotEmpty &&
+                        !fotoKlaim.contains('item-placeholder.svg')
+                    ? fotoKlaim
                     : (laporan?.imageUrl ?? '');
 
-                final kategoriBarang = klaim.kategoriBarang.trim().isNotEmpty
-                    ? klaim.kategoriBarang.trim()
-                    : (laporan?.kategori == '-' ? '' : (laporan?.kategori ?? ''));
+                final kategoriBarang =
+                    klaim.kategoriBarang.trim().isNotEmpty
+                        ? klaim.kategoriBarang.trim()
+                        : (laporan?.kategori == '-'
+                            ? ''
+                            : (laporan?.kategori ?? ''));
 
-                final lokasiDitemukan = klaim.lokasiDitemukan.trim().isNotEmpty
-                    ? klaim.lokasiDitemukan.trim()
-                    : (laporan?.lokasi == '-' ? '' : (laporan?.lokasi ?? ''));
+                final lokasiDitemukan =
+                    klaim.lokasiDitemukan.trim().isNotEmpty
+                        ? klaim.lokasiDitemukan.trim()
+                        : (laporan?.lokasi == '-'
+                            ? ''
+                            : (laporan?.lokasi ?? ''));
 
-                final tanggalTemuan = klaim.tanggalTemuan.trim().isNotEmpty
-                    ? klaim.tanggalTemuan.trim()
-                    : (laporan?.tanggal == '-' ? '' : (laporan?.tanggal ?? ''));
+                final tanggalTemuan =
+                    klaim.tanggalTemuan.trim().isNotEmpty
+                        ? klaim.tanggalTemuan.trim()
+                        : (laporan?.tanggal == '-'
+                            ? ''
+                            : (laporan?.tanggal ?? ''));
 
-                final deskripsiBarang = klaim.deskripsiBarang.trim().isNotEmpty
-                    ? klaim.deskripsiBarang.trim()
-                    : (laporan?.deskripsi == '-' ? '' : (laporan?.deskripsi ?? ''));
+                final deskripsiBarang =
+                    klaim.deskripsiBarang.trim().isNotEmpty
+                        ? klaim.deskripsiBarang.trim()
+                        : (laporan?.deskripsi == '-'
+                            ? ''
+                            : (laporan?.deskripsi ?? ''));
 
-                final ciriDariPemilik = klaim.ciriDariPemilik.trim().isNotEmpty
-                    ? klaim.ciriDariPemilik.trim()
-                    : (ciriKhusus.isNotEmpty ? ciriKhusus : '');
+                final ciriDariPemilik =
+                    klaim.ciriDariPemilik.trim().isNotEmpty
+                        ? klaim.ciriDariPemilik.trim()
+                        : (ciriKhusus.isNotEmpty ? ciriKhusus : '');
 
-                final buktiKepemilikan = klaim.buktiKepemilikan.trim().isNotEmpty
-                    ? klaim.buktiKepemilikan.trim()
-                    : (klaim.alasan != '-' ? klaim.alasan : '');
+                final buktiKepemilikan =
+                    klaim.buktiKepemilikan.trim().isNotEmpty
+                        ? klaim.buktiKepemilikan.trim()
+                        : (klaim.alasan != '-'
+                            ? klaim.alasan
+                            : '');
 
                 return PanduanPengambilanPage(
                   namaBarang: klaim.namaBarang,
@@ -500,7 +561,9 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
               _buildInfoRow(
                 Icons.location_on_outlined,
                 'Wilayah',
-                _wilayahKlaim(klaim).isEmpty ? '-' : _wilayahKlaim(klaim),
+                _wilayahKlaim(klaim).isEmpty
+                    ? '-'
+                    : _wilayahKlaim(klaim),
               ),
               if (disetujui) ...[
                 const SizedBox(height: 12),
@@ -522,7 +585,10 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
                         ),
                       ),
                     ),
-                    const Icon(Icons.chevron_right, color: Colors.green),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.green,
+                    ),
                   ],
                 ),
               ],
@@ -540,13 +606,37 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
   LaporanModel? _cariLaporanTemuan(KlaimModel klaim) {
     final barangId = klaim.barangId.trim();
 
+    // 1. Coba cocokkan id dan nama barang
     for (final laporan in _laporanTemuan) {
-      if (laporan.id.trim() == barangId &&
+      if (barangId.isNotEmpty &&
+          laporan.id.trim() == barangId &&
           laporan.namaBarang.trim().toLowerCase() ==
               klaim.namaBarang.trim().toLowerCase()) {
         debugPrint('LAPORAN COCOK: ${laporan.namaBarang}');
-        debugPrint('ID LAPORAN: ${laporan.id}');
-        debugPrint('FOTO: ${laporan.imageUrl}');
+        return laporan;
+      }
+    }
+
+    // 2. Coba cocokkan id saja
+    if (barangId.isNotEmpty) {
+      for (final laporan in _laporanTemuan) {
+        if (laporan.id.trim() == barangId) {
+          debugPrint(
+            'LAPORAN COCOK BERDASARKAN ID: ${laporan.namaBarang}',
+          );
+          return laporan;
+        }
+      }
+    }
+
+    // 3. Coba cocokkan nama barang saja
+    for (final laporan in _laporanTemuan) {
+      if (klaim.namaBarang.trim().isNotEmpty &&
+          laporan.namaBarang.trim().toLowerCase() ==
+              klaim.namaBarang.trim().toLowerCase()) {
+        debugPrint(
+          'LAPORAN COCOK BERDASARKAN NAMA: ${laporan.namaBarang}',
+        );
         return laporan;
       }
     }
@@ -574,7 +664,10 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
     final color = _statusKlaimColor(status);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 5,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
@@ -594,7 +687,10 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
     final color = _statusKlaimColor(status);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
@@ -631,24 +727,38 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
   // INFO ROW
   // ============================================================
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Colors.grey.shade600),
+        Icon(
+          icon,
+          size: 18,
+          color: Colors.grey.shade600,
+        ),
         const SizedBox(width: 8),
         SizedBox(
           width: 100,
           child: Text(
             label,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade600,
+            ),
           ),
         ),
         const Text(': '),
         Expanded(
           child: Text(
             value.isEmpty ? '-' : value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -677,7 +787,11 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon, size: 72, color: Colors.grey.shade400),
+                    Icon(
+                      icon,
+                      size: 72,
+                      color: Colors.grey.shade400,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       pesan,
@@ -710,16 +824,26 @@ class _LaporanSayaPageState extends State<LaporanSayaPage>
   // ERROR STATE
   // ============================================================
 
-  Widget _buildErrorState(String pesan, Future<void> Function() onRetry) {
+  Widget _buildErrorState(
+    String pesan,
+    Future<void> Function() onRetry,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 56, color: Colors.red),
+            const Icon(
+              Icons.error_outline,
+              size: 56,
+              color: Colors.red,
+            ),
             const SizedBox(height: 12),
-            Text(pesan, textAlign: TextAlign.center),
+            Text(
+              pesan,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: onRetry,

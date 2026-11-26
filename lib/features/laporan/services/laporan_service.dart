@@ -1,5 +1,6 @@
 import '../../../core/network/api_client.dart';
 import '../models/laporan_model.dart';
+import 'package:flutter/foundation.dart';
 
 enum JenisLaporan { hilang, temuan }
 
@@ -187,6 +188,8 @@ class LaporanService {
       _ => throw const ApiException('Jenis laporan tidak dikenali.'),
     };
     final response = await _apiClient.get(path);
+    debugPrint('DETAIL LAPORAN PATH: $path');
+    debugPrint('DETAIL LAPORAN RESPONSE: $response');
     final data = _extractMap(response);
     if (data['id'] == null || data['id'].toString().trim().isEmpty) {
       data['id'] = id;

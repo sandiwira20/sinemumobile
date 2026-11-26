@@ -17,6 +17,16 @@ class KlaimService {
     print('======================================');
 
     final items = _extractList(response);
+          final klaimDiuji = items.whereType<Map>().firstWhere(
+        (item) => item['id'].toString() == '6',
+        orElse: () => <String, dynamic>{},
+      );
+
+debugPrint('========== CEK DATA KLAIM DARI RIWAYAT ==========');
+debugPrint('BUKTI KEPEMILIKAN: ${klaimDiuji['bukti_kepemilikan']}');
+debugPrint('BUKTI CIRI KHUSUS: ${klaimDiuji['bukti_ciri_khusus']}');
+debugPrint('SEMUA KEY: ${klaimDiuji.keys.toList()}');
+debugPrint('==================================================');
     return items
         .whereType<Map>()
         .map((item) => KlaimModel.fromJson(Map<String, dynamic>.from(item)))
@@ -25,7 +35,21 @@ class KlaimService {
 
   Future<KlaimModel> getDetailKlaim(int id) async {
     final response = await _apiClient.get('/klaim/$id');
+    debugPrint(
+  'DETAIL KLAIM LENGKAP: ${response.toString()}',
+);
+    print('========== RESPONSE DETAIL KLAIM $id ==========');
+    debugPrint('DETAIL KLAIM: $response');
+    print('================================================');
     final data = _extractMap(response);
+    
+    debugPrint('========== CEK FIELD DETAIL KLAIM ==========');
+    debugPrint('foto_barang: ${data['foto_barang']}');
+    debugPrint('bukti_kepemilikan: ${data['bukti_kepemilikan']}');
+    debugPrint('bukti_ciri_khusus: ${data['bukti_ciri_khusus']}');
+    debugPrint('bukti_foto: ${data['bukti_foto']}');
+    debugPrint('bukti_fotos: ${data['bukti_fotos']}');
+    debugPrint('============================================');
     if (data['id'] == null || data['id'].toString().trim().isEmpty) {
       data['id'] = id;
     }

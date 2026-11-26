@@ -5,6 +5,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'core/config/api_config.dart';
+import 'core/storage/token_storage.dart';
 
 import 'user_data.dart';
 import 'features/klaim/services/klaim_service.dart';
@@ -177,81 +178,86 @@ class _PanduanPengambilanPageState extends State<PanduanPengambilanPage> {
         if (_statusKlaim.isEmpty || _statusKlaim == '-') {
           if (detail.statusLabel.isNotEmpty) _statusKlaim = detail.statusLabel;
         }
-        if (_fotoBarang.isEmpty && detail.fotoBarang.isNotEmpty) {
+        if ((_fotoBarang.isEmpty || _fotoBarang == '-') && detail.fotoBarang.isNotEmpty) {
           _fotoBarang = detail.fotoBarang;
         }
-        if (_kategoriBarang.isEmpty && detail.kategoriBarang.isNotEmpty) {
+        if ((_kategoriBarang.isEmpty || _kategoriBarang == '-') && detail.kategoriBarang.isNotEmpty) {
           _kategoriBarang = detail.kategoriBarang;
         }
-        if (_lokasiDitemukan.isEmpty && detail.lokasiDitemukan.isNotEmpty) {
+        if ((_lokasiDitemukan.isEmpty || _lokasiDitemukan == '-') && detail.lokasiDitemukan.isNotEmpty) {
           _lokasiDitemukan = detail.lokasiDitemukan;
         }
-        if (_tanggalTemuan.isEmpty && detail.tanggalTemuan.isNotEmpty) {
+        if ((_tanggalTemuan.isEmpty || _tanggalTemuan == '-') && detail.tanggalTemuan.isNotEmpty) {
           _tanggalTemuan = detail.tanggalTemuan;
         }
-        if (_deskripsiBarang.isEmpty && detail.deskripsiBarang.isNotEmpty) {
+        if ((_deskripsiBarang.isEmpty || _deskripsiBarang == '-') && detail.deskripsiBarang.isNotEmpty) {
           _deskripsiBarang = detail.deskripsiBarang;
         }
-        if (_ciriDariPemilik.isEmpty && detail.ciriDariPemilik.isNotEmpty) {
+        if ((_ciriDariPemilik.isEmpty || _ciriDariPemilik == '-') && detail.ciriDariPemilik.isNotEmpty) {
           _ciriDariPemilik = detail.ciriDariPemilik;
         }
-        if (_buktiKepemilikan.isEmpty && detail.buktiKepemilikan.isNotEmpty) {
+        if ((_buktiKepemilikan.isEmpty || _buktiKepemilikan == '-') && detail.buktiKepemilikan.isNotEmpty) {
           _buktiKepemilikan = detail.buktiKepemilikan;
         }
-        if (_namaPengambil.isEmpty && detail.namaPengambil.isNotEmpty) {
+        if ((_namaPengambil.isEmpty || _namaPengambil == '-') && detail.namaPengambil.isNotEmpty) {
           _namaPengambil = detail.namaPengambil;
         }
-        if (_emailPengambil.isEmpty && detail.emailPengambil.isNotEmpty) {
+        if ((_emailPengambil.isEmpty || _emailPengambil == '-') && detail.emailPengambil.isNotEmpty) {
           _emailPengambil = detail.emailPengambil;
         }
         if ((_kontakPengambil.isEmpty || _kontakPengambil == '-') && detail.kontak.isNotEmpty) {
           _kontakPengambil = detail.kontak;
         }
-        if (_namaPosko.isEmpty && detail.namaPosko.isNotEmpty) {
+        if ((_namaPosko.isEmpty || _namaPosko == '-') && detail.namaPosko.isNotEmpty) {
           _namaPosko = detail.namaPosko;
         }
-        if (_alamatPosko.isEmpty && detail.alamatPosko.isNotEmpty) {
+        if ((_alamatPosko.isEmpty || _alamatPosko == '-') && detail.alamatPosko.isNotEmpty) {
           _alamatPosko = detail.alamatPosko;
         }
-        if (_wilayahPosko.isEmpty && detail.wilayahPosko.isNotEmpty) {
+        if ((_wilayahPosko.isEmpty || _wilayahPosko == '-') && detail.wilayahPosko.isNotEmpty) {
           _wilayahPosko = detail.wilayahPosko;
         }
-        if (_jamLayanan.isEmpty && detail.jamLayanan.isNotEmpty) {
+        if ((_jamLayanan.isEmpty || _jamLayanan == '-') && detail.jamLayanan.isNotEmpty) {
           _jamLayanan = detail.jamLayanan;
         }
-        if (_penanggungJawab.isEmpty && detail.penanggungJawab.isNotEmpty) {
+        if ((_penanggungJawab.isEmpty || _penanggungJawab == '-') && detail.penanggungJawab.isNotEmpty) {
           _penanggungJawab = detail.penanggungJawab;
         }
-        if (_kontakPosko.isEmpty && detail.kontakPosko.isNotEmpty) {
+        if ((_kontakPosko.isEmpty || _kontakPosko == '-') && detail.kontakPosko.isNotEmpty) {
           _kontakPosko = detail.kontakPosko;
         }
       });
 
+      // Cari data barang temuan jika foto atau rincian masih belum lengkap
       final bId = int.tryParse(detail.barangId.replaceAll(RegExp(r'[^0-9]'), ''));
       if (bId != null &&
           (_fotoBarang.isEmpty ||
+              _fotoBarang == '-' ||
               _kategoriBarang.isEmpty ||
+              _kategoriBarang == '-' ||
               _lokasiDitemukan.isEmpty ||
-              _tanggalTemuan.isEmpty)) {
+              _lokasiDitemukan == '-' ||
+              _tanggalTemuan.isEmpty ||
+              _tanggalTemuan == '-')) {
         try {
           final laporanService = LaporanService();
           final lapDetail =
               await laporanService.getDetailLaporan(id: bId, type: 'temuan');
           if (!mounted) return;
           setState(() {
-            if (_fotoBarang.isEmpty && lapDetail.imageUrl.isNotEmpty) {
+            if ((_fotoBarang.isEmpty || _fotoBarang == '-') && lapDetail.imageUrl.isNotEmpty) {
               _fotoBarang = lapDetail.imageUrl;
             }
-            if (_kategoriBarang.isEmpty && lapDetail.kategori != '-') {
+            if ((_kategoriBarang.isEmpty || _kategoriBarang == '-') && lapDetail.kategori != '-') {
               _kategoriBarang = lapDetail.kategori;
             }
-            if (_lokasiDitemukan.isEmpty && lapDetail.lokasi != '-') {
+            if ((_lokasiDitemukan.isEmpty || _lokasiDitemukan == '-') && lapDetail.lokasi != '-') {
               _lokasiDitemukan = lapDetail.lokasi;
             }
-            if (_tanggalTemuan.isEmpty && lapDetail.tanggal != '-') {
+            if ((_tanggalTemuan.isEmpty || _tanggalTemuan == '-') && lapDetail.tanggal != '-') {
               _tanggalTemuan = lapDetail.tanggal;
             }
-            if (_deskripsiBarang.isEmpty && lapDetail.deskripsi != '-') {
+            if ((_deskripsiBarang.isEmpty || _deskripsiBarang == '-') && lapDetail.deskripsi != '-') {
               _deskripsiBarang = lapDetail.deskripsi;
             }
           });
@@ -264,7 +270,7 @@ class _PanduanPengambilanPageState extends State<PanduanPengambilanPage> {
     final value = url.trim();
     if (value.isEmpty) return '';
 
-    const baseUrl = 'https://sinemu.my.id';
+    final baseUrl = ApiConfig.rootUrl;
 
     if (value.startsWith('http://192.168.') ||
         value.startsWith('http://10.0.2.2') ||
@@ -300,12 +306,16 @@ class _PanduanPengambilanPageState extends State<PanduanPengambilanPage> {
     return '$baseUrl/storage/$path';
   }
 
+  Future<pw.ImageProvider?> _fetchPdfImage(String rawUrl) async {
+    final normalized = _normalizeImageUrl(rawUrl);
+    if (normalized.isEmpty) return null;
 
-final baseUrl = ApiConfig.rootUrl;
-
-Future<pw.ImageProvider?> _fetchPdfImage(String rawUrl) async {
-  final normalized = _normalizeImageUrl(rawUrl);
-  if (normalized.isEmpty) return null;
+    final token = await const TokenStorage().getToken();
+    final authHeaders = <String, String>{
+      'Accept': '*/*',
+      'User-Agent': 'SiNemuApp/1.0',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
 
     final candidates = <String>[
       normalized,
@@ -319,8 +329,21 @@ Future<pw.ImageProvider?> _fetchPdfImage(String rawUrl) async {
 
     for (final url in candidates) {
       try {
-        final res =
-            await http.get(Uri.parse(url)).timeout(const Duration(seconds: 6));
+        final res = await http
+            .get(Uri.parse(url), headers: authHeaders)
+            .timeout(const Duration(seconds: 8));
+        if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
+          return pw.MemoryImage(res.bodyBytes);
+        }
+      } catch (_) {}
+    }
+
+    // Coba tanpa auth headers sebagai fallback
+    for (final url in candidates) {
+      try {
+        final res = await http
+            .get(Uri.parse(url))
+            .timeout(const Duration(seconds: 6));
         if (res.statusCode == 200 && res.bodyBytes.isNotEmpty) {
           return pw.MemoryImage(res.bodyBytes);
         }

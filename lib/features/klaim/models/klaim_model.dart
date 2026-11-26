@@ -93,70 +93,138 @@ class KlaimModel {
   final String emailAdmin;
 
   factory KlaimModel.fromJson(Map<String, dynamic> json) {
-    final barang = _nestedMap(json, 'barang');
-    final barangTemuan = _nestedMap(json, 'barang_temuan');
+    final klaimObj = _nestedMap(json, 'klaim');
+    final dataObj = _nestedMap(json, 'data');
+    final barang = _nestedMap(json, 'barang').isNotEmpty
+        ? _nestedMap(json, 'barang')
+        : (_nestedMap(klaimObj, 'barang').isNotEmpty
+            ? _nestedMap(klaimObj, 'barang')
+            : _nestedMap(dataObj, 'barang'));
+    final barangTemuan = _nestedMap(json, 'barang_temuan').isNotEmpty
+        ? _nestedMap(json, 'barang_temuan')
+        : (_nestedMap(klaimObj, 'barang_temuan').isNotEmpty
+            ? _nestedMap(klaimObj, 'barang_temuan')
+            : _nestedMap(dataObj, 'barang_temuan'));
+    final laporan = _nestedMap(json, 'laporan').isNotEmpty
+        ? _nestedMap(json, 'laporan')
+        : (_nestedMap(klaimObj, 'laporan').isNotEmpty
+            ? _nestedMap(klaimObj, 'laporan')
+            : _nestedMap(dataObj, 'laporan'));
+    final laporanTemuan = _nestedMap(json, 'laporan_temuan').isNotEmpty
+        ? _nestedMap(json, 'laporan_temuan')
+        : (_nestedMap(klaimObj, 'laporan_temuan').isNotEmpty
+            ? _nestedMap(klaimObj, 'laporan_temuan')
+            : _nestedMap(dataObj, 'laporan_temuan'));
+
     final kategori = _nestedMap(barang, 'kategori');
     final kategoriTemuan = _nestedMap(barangTemuan, 'kategori');
+    final kategoriLaporan = _nestedMap(laporan, 'kategori');
+    final kategoriLaporanTemuan = _nestedMap(laporanTemuan, 'kategori');
+
     final posko = _nestedMap(json, 'posko');
     final poskoTemuan = _nestedMap(barangTemuan, 'posko');
     final poskoBarang = _nestedMap(barang, 'posko');
+    final poskoLaporan = _nestedMap(laporan, 'posko');
+    final poskoLaporanTemuan = _nestedMap(laporanTemuan, 'posko');
+
     final user = _nestedMap(json, 'user');
     final pemohon = _nestedMap(json, 'pemohon');
     final pengaju = _nestedMap(json, 'pengaju');
 
     return KlaimModel(
       // Data klaim
-      id: _readString(json, ['id', 'klaim_id']) ?? '',
+      id: _readString(json, ['id', 'klaim_id']) ??
+          _readString(klaimObj, ['id', 'klaim_id']) ??
+          _readString(dataObj, ['id', 'klaim_id']) ??
+          '',
       nomorKlaim:
-          _readString(json, ['nomor_klaim', 'klaim_number']) ??
+          _readString(json, ['nomor_klaim', 'klaim_number', 'kode_klaim']) ??
+          _readString(klaimObj, ['nomor_klaim', 'klaim_number', 'kode_klaim']) ??
+          _readString(dataObj, ['nomor_klaim', 'klaim_number', 'kode_klaim']) ??
           _readString(json, ['id']) ??
           '',
       barangId:
-          _readString(json, ['barang_id', 'barang_temuan_id', 'laporan_id']) ??
+          _readString(json, ['barang_id', 'barang_temuan_id', 'laporan_id', 'laporan_temuan_id']) ??
+          _readString(klaimObj, ['barang_id', 'barang_temuan_id', 'laporan_id', 'laporan_temuan_id']) ??
+          _readString(dataObj, ['barang_id', 'barang_temuan_id', 'laporan_id', 'laporan_temuan_id']) ??
           _readString(barang, ['id', 'barang_id']) ??
           _readString(barangTemuan, ['id', 'barang_id']) ??
+          _readString(laporan, ['id', 'barang_id']) ??
+          _readString(laporanTemuan, ['id', 'barang_id']) ??
           '',
       namaBarang:
           _readString(json, ['nama_barang', 'nama', 'title']) ??
+          _readString(klaimObj, ['nama_barang', 'nama', 'title']) ??
+          _readString(dataObj, ['nama_barang', 'nama', 'title']) ??
           _readString(barang, ['nama_barang', 'nama', 'title']) ??
           _readString(barangTemuan, ['nama_barang', 'nama', 'title']) ??
+          _readString(laporan, ['nama_barang', 'nama', 'title']) ??
+          _readString(laporanTemuan, ['nama_barang', 'nama', 'title']) ??
           'Tanpa nama barang',
-      status: _readString(json, ['status', 'status_klaim', 'state']) ?? '-',
+      status: _readString(json, ['status', 'status_klaim', 'state']) ??
+          _readString(klaimObj, ['status', 'status_klaim', 'state']) ??
+          _readString(dataObj, ['status', 'status_klaim', 'state']) ??
+          '-',
       alasan:
-          _readString(json, ['alasan', 'alasan_klaim', 'bukti_kepemilikan', 'keterangan']) ?? '-',
+          _readString(json, ['alasan', 'alasan_klaim', 'bukti_kepemilikan', 'keterangan', 'catatan']) ??
+          _readString(klaimObj, ['alasan', 'alasan_klaim', 'bukti_kepemilikan', 'keterangan']) ??
+          _readString(dataObj, ['alasan', 'alasan_klaim', 'bukti_kepemilikan', 'keterangan']) ??
+          '-',
       kontak:
-          _readString(json, ['kontak', 'kontak_pelapor', 'no_hp', 'nomor_hp', 'phone']) ??
+          _readString(json, ['kontak', 'kontak_pelapor', 'no_hp', 'nomor_hp', 'phone', 'telepon']) ??
+          _readString(klaimObj, ['kontak', 'kontak_pelapor', 'no_hp', 'phone']) ??
+          _readString(dataObj, ['kontak', 'kontak_pelapor', 'no_hp', 'phone']) ??
           _readString(user, ['phone', 'no_hp', 'telepon']) ??
+          _readString(pemohon, ['phone', 'no_hp', 'telepon']) ??
+          _readString(pengaju, ['phone', 'no_hp', 'telepon']) ??
           '-',
       tanggal:
           _readString(json, ['tanggal', 'tanggal_pengajuan', 'created_at']) ??
+          _readString(klaimObj, ['tanggal', 'tanggal_pengajuan', 'created_at']) ??
+          _readString(dataObj, ['tanggal', 'tanggal_pengajuan', 'created_at']) ??
           '-',
       statusBarang:
           _readString(json, ['status_barang', 'status_text']) ??
+          _readString(klaimObj, ['status_barang', 'status_text']) ??
           _readString(barang, ['status', 'status_barang']) ??
           _readString(barangTemuan, ['status', 'status_barang']) ??
+          _readString(laporan, ['status', 'status_barang']) ??
+          _readString(laporanTemuan, ['status', 'status_barang']) ??
           '',
       wilayah:
           _readString(json, ['wilayah', 'area']) ??
+          _readString(klaimObj, ['wilayah', 'area']) ??
           _readString(barang, ['wilayah', 'area']) ??
           _readString(barangTemuan, ['wilayah', 'area']) ??
+          _readString(laporan, ['wilayah', 'area']) ??
+          _readString(laporanTemuan, ['wilayah', 'area']) ??
           '',
 
       // Foto barang
       fotoBarang:
           _readString(json, ['foto_barang', 'item_image_url', 'image_url', 'foto_url', 'foto', 'gambar']) ??
+          _readString(klaimObj, ['foto_barang', 'item_image_url', 'image_url', 'foto_url', 'foto', 'gambar']) ??
+          _readString(dataObj, ['foto_barang', 'item_image_url', 'image_url', 'foto_url', 'foto', 'gambar']) ??
           _readString(barang, ['foto_barang', 'image_url', 'foto_url', 'foto', 'gambar']) ??
           _readString(barangTemuan, ['foto_barang', 'image_url', 'foto_url', 'foto', 'gambar']) ??
+          _readString(laporan, ['foto_barang', 'image_url', 'foto_url', 'foto', 'gambar']) ??
+          _readString(laporanTemuan, ['foto_barang', 'image_url', 'foto_url', 'foto', 'gambar']) ??
           '',
 
       // Panduan pengambilan
       kodePengambilan:
-          _readString(json, ['kode_pengambilan', 'claim_code']) ?? '',
+          _readString(json, ['kode_pengambilan', 'claim_code', 'kode_ambil']) ??
+          _readString(klaimObj, ['kode_pengambilan', 'claim_code']) ??
+          _readString(dataObj, ['kode_pengambilan', 'claim_code']) ??
+          '',
       namaPosko:
           _readString(json, ['nama_posko', 'posko_name', 'posko']) ??
+          _readString(klaimObj, ['nama_posko', 'posko_name', 'posko']) ??
           _readString(posko, ['nama_posko', 'nama', 'name', 'nama_instansi']) ??
           _readString(poskoTemuan, ['nama_posko', 'nama', 'name']) ??
           _readString(poskoBarang, ['nama_posko', 'nama', 'name']) ??
+          _readString(poskoLaporan, ['nama_posko', 'nama', 'name']) ??
+          _readString(poskoLaporanTemuan, ['nama_posko', 'nama', 'name']) ??
           '',
       alamatPosko:
           _readString(json, ['alamat_posko', 'posko_address', 'alamat']) ??
@@ -191,18 +259,53 @@ class KlaimModel {
       // Data pemilik/pengaju klaim
       namaPengambil:
           _readString(json, ['nama_pengambil', 'nama_pemilik', 'nama_pelapor', 'nama']) ??
+          _readString(klaimObj, ['nama_pengambil', 'nama_pemilik', 'nama_pelapor', 'nama']) ??
+          _readString(dataObj, ['nama_pengambil', 'nama_pemilik', 'nama_pelapor', 'nama']) ??
           _readString(user, ['name', 'nama', 'nama_lengkap']) ??
           _readString(pemohon, ['name', 'nama', 'nama_lengkap']) ??
           _readString(pengaju, ['name', 'nama', 'nama_lengkap']) ??
           '',
       emailPengambil:
           _readString(json, ['email_pengambil', 'email_pemilik', 'email']) ??
+          _readString(klaimObj, ['email_pengambil', 'email_pemilik', 'email']) ??
+          _readString(dataObj, ['email_pengambil', 'email_pemilik', 'email']) ??
           _readString(user, ['email']) ??
           _readString(pemohon, ['email']) ??
           _readString(pengaju, ['email']) ??
           '',
       buktiKepemilikan:
-          _readString(json, ['bukti_kepemilikan', 'alasan_klaim', 'alasan', 'keterangan']) ?? '',
+          _readString(json, [
+            'bukti_kepemilikan',
+            'alasan_klaim',
+            'alasan',
+            'keterangan',
+            'bukti_detail_isi',
+            'detail_isi',
+            'catatan',
+            'deskripsi_kepemilikan',
+            'bukti',
+          ]) ??
+          _readString(klaimObj, [
+            'bukti_kepemilikan',
+            'alasan_klaim',
+            'alasan',
+            'keterangan',
+            'bukti_detail_isi',
+            'detail_isi',
+            'catatan',
+            'bukti',
+          ]) ??
+          _readString(dataObj, [
+            'bukti_kepemilikan',
+            'alasan_klaim',
+            'alasan',
+            'keterangan',
+            'bukti_detail_isi',
+            'detail_isi',
+            'catatan',
+            'bukti',
+          ]) ??
+          '',
       ciriDariPemilik:
           _readString(json, [
             'ciri_dari_pemilik',
@@ -210,48 +313,100 @@ class KlaimModel {
             'ciri_khusus',
             'ciri_unik',
             'ciri',
+            'ciri_ciri',
+            'bukti_ciri',
           ]) ??
-          _readString(barangTemuan, ['ciri_khusus', 'ciri_unik']) ??
-          _readString(barang, ['ciri_khusus', 'ciri_unik']) ??
+          _readString(klaimObj, [
+            'ciri_dari_pemilik',
+            'bukti_ciri_khusus',
+            'ciri_khusus',
+            'ciri_unik',
+            'ciri',
+            'ciri_ciri',
+            'bukti_ciri',
+          ]) ??
+          _readString(dataObj, [
+            'ciri_dari_pemilik',
+            'bukti_ciri_khusus',
+            'ciri_khusus',
+            'ciri_unik',
+            'ciri',
+            'ciri_ciri',
+            'bukti_ciri',
+          ]) ??
+          _readString(barangTemuan, ['ciri_khusus', 'ciri_unik', 'ciri']) ??
+          _readString(barang, ['ciri_khusus', 'ciri_unik', 'ciri']) ??
+          _readString(laporanTemuan, ['ciri_khusus', 'ciri_unik', 'ciri']) ??
+          _readString(laporan, ['ciri_khusus', 'ciri_unik', 'ciri']) ??
           '',
 
       // Rincian barang temuan
       kategoriBarang:
           _readString(json, ['kategori_barang', 'nama_kategori', 'kategori']) ??
+          _readString(klaimObj, ['kategori_barang', 'nama_kategori', 'kategori']) ??
+          _readString(dataObj, ['kategori_barang', 'nama_kategori', 'kategori']) ??
           _readString(kategori, ['nama_kategori', 'nama', 'name']) ??
           _readString(kategoriTemuan, ['nama_kategori', 'nama', 'name']) ??
+          _readString(kategoriLaporan, ['nama_kategori', 'nama', 'name']) ??
+          _readString(kategoriLaporanTemuan, ['nama_kategori', 'nama', 'name']) ??
           _readString(barang, ['kategori_barang', 'nama_kategori', 'kategori']) ??
           _readString(barangTemuan, ['kategori_barang', 'nama_kategori', 'kategori']) ??
+          _readString(laporan, ['kategori_barang', 'nama_kategori', 'kategori']) ??
+          _readString(laporanTemuan, ['kategori_barang', 'nama_kategori', 'kategori']) ??
           '',
       lokasiDitemukan:
           _readString(json, ['lokasi_ditemukan', 'lokasi', 'tempat_temuan', 'tempat_ditemukan']) ??
+          _readString(klaimObj, ['lokasi_ditemukan', 'lokasi', 'tempat_temuan', 'tempat_ditemukan']) ??
+          _readString(dataObj, ['lokasi_ditemukan', 'lokasi', 'tempat_temuan', 'tempat_ditemukan']) ??
           _readString(barang, ['lokasi_ditemukan', 'lokasi', 'tempat_temuan']) ??
           _readString(barangTemuan, ['lokasi_ditemukan', 'lokasi', 'detail_lokasi']) ??
+          _readString(laporan, ['lokasi_ditemukan', 'lokasi', 'tempat_temuan']) ??
+          _readString(laporanTemuan, ['lokasi_ditemukan', 'lokasi', 'detail_lokasi']) ??
           '',
       tanggalTemuan:
           _readString(json, ['tanggal_temuan', 'tanggal_ditemukan']) ??
+          _readString(klaimObj, ['tanggal_temuan', 'tanggal_ditemukan']) ??
+          _readString(dataObj, ['tanggal_temuan', 'tanggal_ditemukan']) ??
           _readString(barang, ['tanggal_ditemukan', 'tanggal_temuan', 'tanggal']) ??
           _readString(barangTemuan, ['tanggal_ditemukan', 'tanggal_temuan', 'tanggal']) ??
+          _readString(laporan, ['tanggal_ditemukan', 'tanggal_temuan', 'tanggal']) ??
+          _readString(laporanTemuan, ['tanggal_ditemukan', 'tanggal_temuan', 'tanggal']) ??
           '',
       deskripsiBarang:
           _readString(json, ['deskripsi_barang', 'deskripsi_fisik', 'deskripsi', 'keterangan']) ??
+          _readString(klaimObj, ['deskripsi_barang', 'deskripsi_fisik', 'deskripsi', 'keterangan']) ??
+          _readString(dataObj, ['deskripsi_barang', 'deskripsi_fisik', 'deskripsi', 'keterangan']) ??
           _readString(barang, ['deskripsi', 'deskripsi_fisik', 'keterangan']) ??
           _readString(barangTemuan, ['deskripsi', 'deskripsi_fisik', 'keterangan']) ??
+          _readString(laporan, ['deskripsi', 'deskripsi_fisik', 'keterangan']) ??
+          _readString(laporanTemuan, ['deskripsi', 'deskripsi_fisik', 'keterangan']) ??
           '',
       warnaDominan:
           _readString(json, ['warna_dominan']) ??
+          _readString(klaimObj, ['warna_dominan']) ??
+          _readString(dataObj, ['warna_dominan']) ??
           _readString(barang, ['warna_dominan']) ??
           _readString(barangTemuan, ['warna_dominan']) ??
+          _readString(laporan, ['warna_dominan']) ??
+          _readString(laporanTemuan, ['warna_dominan']) ??
           '',
       merek:
           _readString(json, ['merek', 'merk']) ??
+          _readString(klaimObj, ['merek', 'merk']) ??
+          _readString(dataObj, ['merek', 'merk']) ??
           _readString(barang, ['merek', 'merk']) ??
           _readString(barangTemuan, ['merek', 'merk']) ??
+          _readString(laporan, ['merek', 'merk']) ??
+          _readString(laporanTemuan, ['merek', 'merk']) ??
           '',
       nomorSeri:
           _readString(json, ['nomor_seri']) ??
+          _readString(klaimObj, ['nomor_seri']) ??
+          _readString(dataObj, ['nomor_seri']) ??
           _readString(barang, ['nomor_seri']) ??
           _readString(barangTemuan, ['nomor_seri']) ??
+          _readString(laporan, ['nomor_seri']) ??
+          _readString(laporanTemuan, ['nomor_seri']) ??
           '',
 
       // Status tambahan

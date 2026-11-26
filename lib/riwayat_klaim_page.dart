@@ -338,6 +338,8 @@ class _KlaimDetailSheetState extends State<_KlaimDetailSheet> {
             _buildInfoRow('Nama Barang', klaim.namaBarang),
             _buildInfoRow('Status Klaim', klaim.statusLabel),
             _buildInfoRow('Alasan', klaim.alasan),
+            _buildInfoRow('Bukti Kepemilikan', klaim.buktiKepemilikan),
+            _buildInfoRow('Ciri Khusus dari Pemilik', klaim.ciriDariPemilik),
             _buildInfoRow('Kontak', klaim.kontak),
             _buildInfoRow('Tanggal Pengajuan', klaim.tanggalDisplay),
             _buildInfoRow('Status Barang', klaim.statusBarangLabel),
